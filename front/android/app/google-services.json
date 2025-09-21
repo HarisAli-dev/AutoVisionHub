@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "890427193513",
+    "project_id": "auto-vision-hub",
+    "storage_bucket": "auto-vision-hub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890427193513:android:27ea9b1576affd2e7111b8",
+        "android_client_info": {
+          "package_name": "com.example.front"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7k-DeOrrGXvLJhPsXQVTKJ4H57xfzdeM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
