@@ -9,6 +9,7 @@ import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/image_picker.dart';
 import 'package:front/utils/sizes.dart';
+import 'package:front/utils/validation_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/snackbars.dart';
@@ -216,12 +217,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validateName,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -239,6 +235,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
+                  isphone: true,
+                  validator: ValidationHelpers.validatePhoneNumber,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -247,6 +245,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
+                  validator: ValidationHelpers.validateCity,
                 ),
                 SizedBox(height: screenHeight * 0.04),
                 ElevatedButton(

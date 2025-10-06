@@ -26,6 +26,16 @@ class SocketService {
   Function(String)? onUserTyping;
   Function(String)? onUserStoppedTyping;
   
+  // Live streaming callbacks
+  Function(dynamic)? onLiveStreamEnded;
+  Function(dynamic)? onRecordingStatusChanged;
+  Function(dynamic)? onViewerCountChanged;
+  Function(dynamic)? onUserJoinedStream;
+  Function(dynamic)? onUserLeftStream;
+  
+  // Current live stream state
+  String? _currentLiveStreamRoom;
+  
   bool get isConnected => _isConnected;
   
   void init() {
@@ -139,6 +149,47 @@ class SocketService {
         onUserStoppedTyping!(userId);
       }
     });
+    
+    // Live streaming events
+    socket.on('liveStreamEnded', (data) {
+      debugPrint('Live stream ended: $data');
+      
+      // Global handler - always handle stream ended regardless of current screen
+      _handleGlobalStreamEnded(data);
+      
+      // Also call the callback if one is set
+      if (onLiveStreamEnded != null) {
+        onLiveStreamEnded!(data);
+      }
+    });
+    
+    socket.on('recordingStatusChanged', (data) {
+      debugPrint('Recording status changed: $data');
+      if (onRecordingStatusChanged != null) {
+        onRecordingStatusChanged!(data);
+      }
+    });
+    
+    socket.on('viewerCountChanged', (data) {
+      debugPrint('Viewer count changed: $data');
+      if (onViewerCountChanged != null) {
+        onViewerCountChanged!(data);
+      }
+    });
+    
+    socket.on('userJoinedStream', (data) {
+      debugPrint('User joined stream: $data');
+      if (onUserJoinedStream != null) {
+        onUserJoinedStream!(data);
+      }
+    });
+    
+    socket.on('userLeftStream', (data) {
+      debugPrint('User left stream: $data');
+      if (onUserLeftStream != null) {
+        onUserLeftStream!(data);
+      }
+    });
   }
   
   // Join a chat room
@@ -234,5 +285,126 @@ class SocketService {
       _isConnected = false;
       debugPrint('Socket disconnected');
     }
+  }
+  
+  // ========== LIVE STREAMING METHODS ==========
+  
+  /// Join a live streaming room
+  void joinLiveStreamRoom(String roomId) {
+    if (_isConnected && _userId != null) {
+      _currentLiveStreamRoom = roomId;
+      socket.emit('join_live_stream', {
+        'roomId': roomId,
+        'userId': _userId,
+        'userName': HiveUtils.getData('username') ?? 'Unknown User',
+      });
+      debugPrint('Joined live stream room: $roomId');
+    } else {
+      debugPrint('Cannot join live stream room: socket not connected or userId null');
+    }
+  }
+  
+  /// Leave current live streaming room
+  void leaveLiveStreamRoom() {
+    if (_isConnected && _userId != null && _currentLiveStreamRoom != null) {
+      socket.emit('leave_live_stream', {
+        'roomId': _currentLiveStreamRoom,
+        'userId': _userId,
+      });
+      debugPrint('Left live stream room: $_currentLiveStreamRoom');
+      _currentLiveStreamRoom = null;
+    }
+  }
+  
+  /// Notify that recording started (host only)
+  void notifyRecordingStarted(String roomId) {
+    if (_isConnected && _userId != null) {
+      socket.emit('recording_started', {
+        'roomId': roomId,
+        'hostId': _userId,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      debugPrint('Notified recording started for room: $roomId');
+    }
+  }
+  
+  /// Notify that recording stopped (host only)
+  void notifyRecordingStopped(String roomId) {
+    if (_isConnected && _userId != null) {
+      socket.emit('recording_stopped', {
+        'roomId': roomId,
+        'hostId': _userId,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      debugPrint('Notified recording stopped for room: $roomId');
+    }
+  }
+  
+  /// Update viewer count in room
+  void updateViewerCount(String roomId, int viewerCount) {
+    if (_isConnected) {
+      socket.emit('update_viewer_count', {
+        'roomId': roomId,
+        'viewerCount': viewerCount,
+      });
+    }
+  }
+  
+  /// Set live streaming event callbacks
+  void setLiveStreamCallbacks({
+    Function(dynamic)? onLiveStreamEnded,
+    Function(dynamic)? onRecordingStatusChanged,
+    Function(dynamic)? onViewerCountChanged,
+    Function(dynamic)? onUserJoinedStream,
+    Function(dynamic)? onUserLeftStream,
+  }) {
+    this.onLiveStreamEnded = onLiveStreamEnded;
+    this.onRecordingStatusChanged = onRecordingStatusChanged;
+    this.onViewerCountChanged = onViewerCountChanged;
+    this.onUserJoinedStream = onUserJoinedStream;
+    this.onUserLeftStream = onUserLeftStream;
+  }
+  
+  /// Clear live streaming callbacks
+  void clearLiveStreamCallbacks() {
+    onLiveStreamEnded = null;
+    onRecordingStatusChanged = null;
+    onViewerCountChanged = null;
+    onUserJoinedStream = null;
+    onUserLeftStream = null;
+  }
+  
+  /// Get current live stream room
+  String? get currentLiveStreamRoom => _currentLiveStreamRoom;
+  
+  /// Check if currently in a live stream room
+  bool get isInLiveStreamRoom => _currentLiveStreamRoom != null;
+  
+  /// Global handler for live stream ended events
+  /// This handles the case where viewers are in Zego interface and can't receive local callbacks
+  void _handleGlobalStreamEnded(dynamic data) {
+    final String? roomId = data['roomId'];
+    
+    // Only handle if we're currently in this room
+    if (roomId != null && _currentLiveStreamRoom == roomId) {
+      debugPrint('Global stream ended handler triggered for room: $roomId');
+      
+      // Leave the room
+      leaveLiveStreamRoom();
+      
+      // TODO: Force close any active Zego interfaces
+      // This could be implemented by using a global app state or navigation key
+      // For now, we rely on the Zego interface's own connection management
+      
+      // Try to show a global notification if possible
+      _showGlobalStreamEndedNotification(data);
+    }
+  }
+  
+  /// Show a global notification that stream has ended
+  void _showGlobalStreamEndedNotification(dynamic data) {
+    // This is a placeholder for showing global notifications
+    // In a real app, you might use a notification service or global overlay
+    debugPrint('Stream ended notification: ${data['message'] ?? 'Stream ended'}');
   }
 }

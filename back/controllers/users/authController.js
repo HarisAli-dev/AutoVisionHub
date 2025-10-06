@@ -3,6 +3,7 @@ const User = require('../../models/users/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Group = require('../../models/groups/groupModel'); // Assuming Group model is defined
+const { updateUserFCMToken } = require('../../services/notificationService');
 
 //check for token expiry
 exports.checkTokenExpiry = (req, res, next) => {
@@ -123,6 +124,58 @@ exports.deleteProfile = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting profile', error: err.message });
+  }
+};
+
+// Update FCM token for push notifications
+exports.updateFCMToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    const userId = req.user.id; // From auth middleware
+
+    // Allow empty string to clear the token, but not undefined/null
+    if (fcmToken === undefined || fcmToken === null) {
+      return res.status(400).json({ message: 'FCM token is required' });
+    }
+
+    // If empty string, clear the token, otherwise update it
+    if (fcmToken === '') {
+      await User.findByIdAndUpdate(userId, {
+        $unset: { fcmToken: 1 } // Remove the fcmToken field
+      });
+    } else {
+      await updateUserFCMToken(userId, fcmToken);
+    }
+
+    res.status(200).json({
+      message: fcmToken === '' ? 'FCM token cleared successfully' : 'FCM token updated successfully'
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      message: 'Error updating FCM token', 
+      error: err.message 
+    });
+  }
+};
+
+// User logout - Clear FCM token and handle logout logic
+exports.logout = async (req, res) => {
+  try {
+    const userId = req.user.id; // From auth middleware
+
+    // Clear the FCM token from the user's record
+    await User.findByIdAndUpdate(userId, {
+      $unset: { fcmToken: 1 } // Remove the fcmToken field
+    });
+
+    res.status(200).json({
+      message: 'Logged out successfully'
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      message: 'Error during logout', 
+      error: err.message 
+    });
   }
 };
 

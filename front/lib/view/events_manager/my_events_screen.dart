@@ -7,6 +7,7 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/events_manager/edit_event_screen.dart';
+import 'package:front/view/community_member/events/live_stream_screen.dart';
 
 class MyEventsScreen extends StatefulWidget {
   const MyEventsScreen({super.key});
@@ -123,6 +124,19 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                           SizedBox(width: 8),
                           Text(
                             'Edit',
+                            style: TextStyle(color: AppColors.foregroundColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'livestream',
+                      child: Row(
+                        children: [
+                          Icon(Icons.videocam, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text(
+                            'Start Live Stream',
                             style: TextStyle(color: AppColors.foregroundColor),
                           ),
                         ],
@@ -337,6 +351,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
       case 'edit':
         _navigateToEditEvent(event);
         break;
+      case 'livestream':
+        _navigateToLiveStream(event);
+        break;
     }
   }
 
@@ -347,6 +364,18 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
     // Refresh the list if needed
     setState(() {});
+  }
+
+  void _navigateToLiveStream(EventModel event) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LiveStreamScreen(
+          event: event,
+          isHost: true, // Event manager is always the host
+        ),
+      ),
+    );
   }
 
   void _showDeleteDialog(EventModel event) {

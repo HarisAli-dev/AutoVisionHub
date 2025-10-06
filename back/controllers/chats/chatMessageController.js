@@ -1,7 +1,9 @@
 const Message = require('../../models/chats/chatMessageModel');
 const Chat = require('../../models/chats/chatModel');
 const Group = require('../../models/groups/groupModel');
+const User = require('../../models/users/userModel');
 const { getIO } = require('../../config/socket');
+const { sendChatMessageNotification } = require('../../services/notificationService');
 
 // Send a new message
 exports.sendMessage = async (req, res) => {
@@ -83,19 +85,35 @@ exports.sendMessage = async (req, res) => {
     // Get the populated message to include sender details
     const populatedMessage = await Message.findById(message._id);
     
+    // Get sender information for notifications
+    const sender = await User.findById(senderId);
+    
     // Emit socket event for real-time updates
     const io = getIO();
     
-    // Emit to chat room (all senderNames in the chat)
+    // Emit to chat room (all users in the chat)
     io.to(chatId).emit('newMessage', populatedMessage);
     
-    // Emit to individual recipients for notifications
-    recipients.forEach(recipientId => {
-      io.to(recipientId.toString()).emit('messageNotification', {
-        message: populatedMessage,
-        chat: chat
-      });
-    });
+    // Send notifications to recipients
+    if (sender && recipients.length > 0) {
+      for (const recipientId of recipients) {
+        // Emit socket notification
+        io.to(recipientId.toString()).emit('messageNotification', {
+          message: populatedMessage,
+          chat: chat
+        });
+        
+        // Send push notification for direct chat
+        if (!isGroup) {
+          await sendChatMessageNotification(
+            recipientId.toString(),
+            sender,
+            populatedMessage,
+            chat
+          );
+        }
+      }
+    }
     
     // If it's a group, also emit a group message event
     if (isGroup) {

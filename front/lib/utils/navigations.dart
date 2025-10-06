@@ -1,5 +1,6 @@
 import 'package:front/view/admin/admin_home_screen.dart';
 import 'package:front/view/admin/create_group_screen.dart';
+import 'package:front/view/admin/edit_group_list_screen.dart';
 import 'package:front/view/community_member/chats/chats_list_screen.dart';
 import 'package:front/view/community_member/community_member_home_screen.dart';
 import 'package:front/view/community_member/groups/group_list_screen.dart';
@@ -35,6 +36,12 @@ class NavigationUtils {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => CreateGroupScreen()),
+        );
+        break;
+      case 'Edit Groups':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EditGroupListScreen()),
         );
         break;
     }

@@ -3,26 +3,41 @@ import 'package:front/splash_screen.dart';
 import 'package:front/view/auth/signin.dart';
 import 'package:front/view/auth/signup.dart';
 import 'package:front/view/community_member/community_member_home_screen.dart';
+import 'package:front/view/community_member/chats/chat_screen.dart';
+import 'package:front/view/community_member/groups/group_screen.dart';
+import 'package:front/view/community_member/events/view_event_screen.dart';
+import 'package:front/view/firebase_api.dart';
 import 'package:front/providers/unified_audio_provider.dart';
 import 'package:front/providers/video_player_provider.dart';
 import 'package:front/providers/poll_provider.dart';
 import 'package:front/providers/seat_provider.dart';
+import 'package:front/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await AppConfig.loadEnv();
+
+  // Initialize Firebase and notifications
+  await FirebaseApi.initNotifications();
+
+  // Initialize Hive
   await Hive.initFlutter();
   await Hive.openBox('sessionBox');
-  Stripe.publishableKey =
-      'pk_test_51S9RGbKLSXb0Puxvt6KTbJdYcByY6a0cU1XWQ22cvQdq5SKNKQTNfEM52bfOyuvjx0eeZeh1lybqgRzEBGNtjZUh00F6i2O4zw';
+
+  // Initialize Stripe with environment variable
+  Stripe.publishableKey = AppConfig.stripePublishableKey;
   await Stripe.instance.applySettings();
 
   runApp(const MyApp());
 }
 
-final String apiUrl = "http://192.168.1.36:8080/api";
+// Use environment variable for API URL
+final String apiUrl = AppConfig.apiBaseUrl;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -37,6 +52,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SeatProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: FirebaseApi.navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'Flutter Demo',
         theme: ThemeData.light(),
@@ -47,6 +63,37 @@ class MyApp extends StatelessWidget {
           '/signin': (context) => SignInScreen(),
           '/signup': (context) => SignupScreen(),
           '/communityMemberHome': (context) => CommunityMemberHomeScreen(),
+        },
+        onGenerateRoute: (settings) {
+          final args = settings.arguments as Map<String, dynamic>?;
+          
+          switch (settings.name) {
+            case '/chat':
+              return MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  chatId: args?['chatId'] ?? '',
+                  chatName: args?['chatName'] ?? 'Chat',
+                ),
+              );
+            case '/group':
+              return MaterialPageRoute(
+                builder: (context) => GroupScreen(
+                  groupId: args?['groupId'] ?? '',
+                  groupName: args?['groupName'] ?? 'Group',
+                  currentUserId: args?['currentUserId'] ?? '',
+                  groupImage: args?['groupImage'] ?? '',
+                ),
+              );
+            case '/event':
+              if (args?['event'] != null) {
+                return MaterialPageRoute(
+                  builder: (context) => ViewEventScreen(event: args!['event']),
+                );
+              }
+              return null;
+            default:
+              return null;
+          }
         },
       ),
     );

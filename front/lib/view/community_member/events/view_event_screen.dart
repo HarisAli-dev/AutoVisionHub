@@ -5,6 +5,8 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/view/community_member/events/seat_booking_screen.dart';
 import 'package:front/view/community_member/events/ticket_booking_screen.dart';
+import 'package:front/view/community_member/events/live_stream_screen.dart';
+import 'package:front/services/live_stream_service.dart';
 
 class ViewEventScreen extends StatefulWidget {
   final EventModel event;
@@ -19,12 +21,19 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
   int _currentImageIndex = 0;
   Timer? _timer;
   List<String> images = [];
+  
+  // Live stream related variables
+  bool _isCheckingLiveStream = false;
+  Map<String, dynamic>? _liveStreamStatus;
+  Timer? _liveStreamTimer;
 
   @override
   void initState() {
     super.initState();
     _startImageSlideshow();
     _getImages();
+    _checkLiveStreamStatus();
+    _startLiveStreamStatusPolling();
   }
 
   void _getImages() {
@@ -144,7 +153,53 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _liveStreamTimer?.cancel();
     super.dispose();
+  }
+
+  // Live stream methods
+  Future<void> _checkLiveStreamStatus() async {
+    if (widget.event.id == null) return;
+    
+    setState(() {
+      _isCheckingLiveStream = true;
+    });
+
+    try {
+      final status = await LiveStreamService.getLiveStreamStatus(widget.event.id!);
+      if (mounted) {
+        setState(() {
+          _liveStreamStatus = status;
+          _isCheckingLiveStream = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingLiveStream = false;
+        });
+      }
+    }
+  }
+
+  void _startLiveStreamStatusPolling() {
+    // Check live stream status every 30 seconds
+    _liveStreamTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _checkLiveStreamStatus();
+    });
+  }
+
+  void _navigateToLiveStream() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LiveStreamScreen(
+          event: widget.event,
+          isHost: false, // Community member is always audience
+          existingRoomId: _liveStreamStatus?['roomId'],
+        ),
+      ),
+    );
   }
 
   @override
@@ -251,6 +306,65 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                   ],
 
                   SizedBox(height: AppSizes.getScreenHeight(context) * 0.04),
+
+                  // Live Stream Button (if active)
+                  if (_liveStreamStatus != null && _liveStreamStatus!['isActive'] == true)
+                    Column(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: AppSizes.getScreenHeight(context) * 0.06,
+                          child: ElevatedButton.icon(
+                            onPressed: _navigateToLiveStream,
+                            icon: Icon(
+                              Icons.live_tv,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              'Watch Live Stream',
+                              style: TextStyle(
+                                fontSize: AppSizes.subtitleFontSize(context),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppSizes.getScreenWidth(context) * 0.03,
+                                ),
+                              ),
+                              elevation: 3,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'LIVE - ${_liveStreamStatus!['status']?['viewerCount'] ?? 0} viewers',
+                              style: TextStyle(
+                                fontSize: AppSizes.bodyFontSize(context),
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
+                      ],
+                    ),
 
                   // Book Button
                   _buildBookButton(),

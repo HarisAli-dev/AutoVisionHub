@@ -1,14 +1,14 @@
-import 'package:front/utils/app_colors.dart';
-import 'package:front/utils/hive_utils.dart';
-import 'package:front/utils/navigations.dart';
 import 'package:flutter/material.dart';
+import 'package:front/controller/users/auth_controller.dart';
+import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/navigations.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const adminActions = ['Create Group'];
+    const adminActions = ['Create Group', 'Edit Groups'];
     return Scaffold(
       appBar: AppBar(
         title: Text('Admin Home'),
@@ -16,8 +16,8 @@ class AdminHomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: Icon(Icons.logout),
-            onPressed: () {
-              HiveUtils.logOutSession();
+            onPressed: () async {
+              await AuthController.logout();
               Navigator.pushReplacementNamed(context, '/signin');
             },
           ),

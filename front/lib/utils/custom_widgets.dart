@@ -15,6 +15,7 @@ class CustomWidgets {
     bool disabled = false,
     int maxLine = 1,
     bool isnumber = false,
+    bool isphone = false,
     String? Function(String?)? validator,
   }) {
     return ChangeNotifierProvider<ObscureTextProvider>(
@@ -24,9 +25,11 @@ class CustomWidgets {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: TextFormField(
-              keyboardType: isnumber
-                  ? TextInputType.number
-                  : TextInputType.text,
+              keyboardType: isphone 
+                  ? TextInputType.phone
+                  : isnumber
+                      ? TextInputType.number
+                      : TextInputType.text,
               controller: controller,
               obscureText: provider.obscureText,
               enabled: !disabled,

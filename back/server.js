@@ -3,11 +3,18 @@ const cors = require('cors');
 const http = require('http');
 const connectDB = require('./config/db');
 const socketConfig = require('./config/socket');
+const LiveStreamSocketHandler = require('./controllers/events/socketHandler');
 require('dotenv').config();
+
 const app = express();
 const server = http.createServer(app);
+
 // Initialize socket.io with our custom configuration
 const io = socketConfig.init(server);
+
+// Initialize live stream socket handler
+const liveStreamHandler = new LiveStreamSocketHandler(io);
+
 connectDB();
 
 app.use(cors({
@@ -29,6 +36,7 @@ app.use('/api/group', require('./routes/groups/groupRoutes'));
 app.use('/api/groupMessage', require('./routes/groups/GroupMessageRoutes'));
 app.use('/api/poll', require('./routes/groups/pollRoutes'));
 app.use('/api/event', require('./routes/events/eventRoutes'));
+app.use('/api/livestream', require('./routes/events/liveStreamRoutes'));
 app.use('/api/media', require('./routes/mediaRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 
@@ -39,6 +47,9 @@ app.get('/api/test', (req, res) => {
 // Listen for new messages and other real-time events
 io.on('connection', (socket) => {
   console.log('A user connected: ' + socket.id);
+
+  // Setup live streaming event handlers
+  liveStreamHandler.setupEventHandlers(socket);
 
   // Join a room with userId for private messages
   socket.on('joinUserRoom', (userId) => {
@@ -99,6 +110,71 @@ io.on('connection', (socket) => {
     const { pollId } = data;
     socket.broadcast.emit('poll_deleted', { pollId });
   });
+
+  // Live streaming events
+  socket.on('join_live_stream', (data) => {
+    const { roomId } = data;
+    socket.join(roomId);
+    console.log(`Socket ${socket.id} joined live stream room: ${roomId}`);
+    
+    // Notify others in the room about new viewer
+    socket.to(roomId).emit('viewer_joined', { socketId: socket.id, timestamp: new Date() });
+  });
+
+  socket.on('leave_live_stream', (data) => {
+    const { roomId } = data;
+    socket.leave(roomId);
+    console.log(`Socket ${socket.id} left live stream room: ${roomId}`);
+    
+    // Notify others in the room about viewer leaving
+    socket.to(roomId).emit('viewer_left', { socketId: socket.id, timestamp: new Date() });
+  });
+
+  socket.on('live_stream_started', (data) => {
+    const { roomId, eventId, streamTitle } = data;
+    // Notify all users in the event about live stream starting
+    socket.broadcast.emit('live_stream_notification', {
+      type: 'started',
+      roomId,
+      eventId,
+      streamTitle,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('live_stream_ended', (data) => {
+    const { roomId, eventId } = data;
+    // Notify all viewers in the room that stream ended
+    socket.to(roomId).emit('live_stream_ended', {
+      roomId,
+      eventId,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('live_stream_engagement', (data) => {
+    const { roomId, eventType, userId, data: eventData } = data;
+    // Broadcast engagement to all viewers in the room
+    socket.to(roomId).emit('live_stream_engagement_update', {
+      eventType,
+      userId,
+      data: eventData,
+      timestamp: new Date()
+    });
+  });
+
+  // TODO: Chatbot live stream events (for future implementation)
+  /*
+  socket.on('chatbot_message', (data) => {
+    const { roomId, message, userId } = data;
+    // Send message to chatbot and broadcast response
+    socket.to(roomId).emit('chatbot_response', {
+      message,
+      userId,
+      timestamp: new Date()
+    });
+  });
+  */
 
   // Handle mark group as read
   socket.on('mark_group_read', (data) => {

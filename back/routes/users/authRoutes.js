@@ -11,5 +11,7 @@ router.get('/checkTokenExpiry/:token', authController.checkTokenExpiry);
 
 router.use(protect); // Protect all routes below this middleware
 router.delete('/delete/:userId', authController.deleteProfile);
+router.put('/fcm-token', authController.updateFCMToken);
+router.post('/logout', authController.logout);
 
 module.exports = router;

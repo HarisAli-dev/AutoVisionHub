@@ -1,8 +1,8 @@
 //setting page with options to change profile and logout
+import 'package:front/controller/users/auth_controller.dart';
 import 'package:front/controller/users/user_controller.dart';
 import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/app_colors.dart';
-import 'package:front/utils/hive_utils.dart';
 
 import 'package:flutter/material.dart';
 import 'package:front/view/settings/change_password.dart';
@@ -58,10 +58,38 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               leading: Icon(Icons.logout, color: AppColors.primary),
               title: Text('Logout'),
-              onTap: () {
-                // Clear session and navigate to sign-in screen
-                HiveUtils.logOutSession();
-                Navigator.pushReplacementNamed(context, '/signin');
+              onTap: () async {
+                // Show loading dialog
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      content: Row(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(width: 20),
+                          Text('Logging out...'),
+                        ],
+                      ),
+                    );
+                  },
+                );
+
+                try {
+                  // Clear session and navigate to sign-in screen
+                  await AuthController.logout();
+                  Navigator.of(context).pop(); // Dismiss loading dialog
+                  Navigator.pushReplacementNamed(context, '/signin');
+                } catch (e) {
+                  Navigator.of(context).pop(); // Dismiss loading dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Logout failed. Please try again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
             ),
           ],

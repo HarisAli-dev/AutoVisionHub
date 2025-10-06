@@ -3,6 +3,7 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/utils/validation_helpers.dart';
 import 'package:flutter/material.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -60,12 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validateName,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -74,12 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validateEmail,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -89,12 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validatePassword,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -103,12 +89,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your contact number';
-                    }
-                    return null;
-                  },
+                  isphone: true,
+                  validator: ValidationHelpers.validatePhoneNumber,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(
@@ -117,12 +99,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your city';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validateCity,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 Container(

@@ -46,6 +46,7 @@ class CustomSnackbars {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         elevation: 10,
+        duration: Duration(seconds: duration.toInt()),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(10),

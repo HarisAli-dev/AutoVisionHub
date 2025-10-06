@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:front/services/cloudinary_service.dart';
+import 'package:front/services/notification_service.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:front/main.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthController {
   static Future<String> signup(
@@ -51,6 +53,17 @@ class AuthController {
       HiveUtils.putData('token', data['token']);
       HiveUtils.loginSession();
       HiveUtils.putData('role', role);
+      
+      // Update FCM token after successful login
+      try {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await NotificationService.updateFCMToken(fcmToken);
+        }
+      } catch (e) {
+        debugPrint('Error updating FCM token after login: $e');
+      }
+      
       return "Login successful";
     } else {
       return "Wrong email or password";
@@ -103,6 +116,57 @@ class AuthController {
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
       throw Exception('Error uploading image: ${e.toString()}');
+    }
+  }
+
+  /// Logout user and clear FCM token from backend
+  static Future<bool> logout() async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        debugPrint('No auth token found for logout');
+        // Still clear local data even if no token
+        await _clearLocalData();
+        return true;
+      }
+
+      // Call backend logout API
+      final response = await http.post(
+        Uri.parse('$apiUrl/auth/logout'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('Logout successful on backend');
+      } else {
+        debugPrint('Backend logout failed: ${response.body}');
+        // Continue with local logout even if backend fails
+      }
+    } catch (e) {
+      debugPrint('Error during logout API call: $e');
+      // Continue with local logout even if API fails
+    }
+
+    // Always clear local data regardless of API response
+    await _clearLocalData();
+    return true;
+  }
+
+  /// Clear all local user data
+  static Future<void> _clearLocalData() async {
+    try {
+      // Clear notification service FCM token
+      await NotificationService.clearFCMToken();
+      
+      // Clear all session data
+      await HiveUtils.logOutSession();
+      
+      debugPrint('Local data cleared successfully');
+    } catch (e) {
+      debugPrint('Error clearing local data: $e');
     }
   }
 }

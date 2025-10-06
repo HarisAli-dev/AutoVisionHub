@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'event_manager', 'community_member'],
     default: 'community_member',  // Default role is Community Member
   },
+  fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

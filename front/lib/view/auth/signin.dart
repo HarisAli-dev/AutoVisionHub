@@ -4,6 +4,7 @@ import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/navigations.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/utils/validation_helpers.dart';
 import 'package:front/view/auth/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -60,12 +61,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   borderColor: AppColors.primary,
                   textColor: AppColors.foregroundColor,
                   fontsize: screenWidth * 0.04,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    return null;
-                  },
+                  validator: ValidationHelpers.validateEmail,
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(

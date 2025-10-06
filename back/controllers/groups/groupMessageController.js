@@ -2,6 +2,8 @@ const GroupMessage = require('../../models/groups/groupMessageModel');
 const Group = require('../../models/groups/groupModel');
 const User = require('../../models/users/userModel');
 const Poll = require('../../models/groups/pollModel');
+const { getIO } = require('../../config/socket');
+const { sendGroupMessageNotification } = require('../../services/notificationService');
 
 // Send a message to group
 const sendMessage = async (req, res) => {
@@ -64,6 +66,41 @@ const sendMessage = async (req, res) => {
 
     await group.save();
 
+    // Get sender information for notifications
+    const sender = await User.findById(senderId);
+
+    // Emit socket events for real-time updates
+    const io = getIO();
+    
+    // Emit to all group members
+    io.to(groupId).emit('newGroupMessage', {
+      message,
+      group
+    });
+
+    // Send push notifications to all group members except sender
+    if (sender) {
+      const recipients = group.participants.filter(participantId => 
+        participantId.toString() !== senderId
+      );
+
+      for (const recipientId of recipients) {
+        // Emit socket notification
+        io.to(recipientId.toString()).emit('groupMessageNotification', {
+          message,
+          group,
+          sender
+        });
+
+        // Send push notification
+        await sendGroupMessageNotification(
+          recipientId.toString(),
+          sender,
+          message,
+          group
+        );
+      }
+    }
 
     res.status(201).json({ message });
   } catch (error) {
