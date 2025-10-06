@@ -172,7 +172,6 @@ class _SignupScreenState extends State<SignupScreen> {
                               CustomSnackbars.showErrorSnackbar(
                                 context,
                                 responseMessage,
-                      
                               );
                             }
                             setState(() {

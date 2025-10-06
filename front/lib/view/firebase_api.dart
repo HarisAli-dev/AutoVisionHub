@@ -11,14 +11,16 @@ import 'package:permission_handler/permission_handler.dart';
 
 class FirebaseApi {
   // Firebase Messaging instance
-  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
+
   // Local notifications plugin
-  static final FlutterLocalNotificationsPlugin _localNotifications = 
+  static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
   // Navigation key for handling navigation from notifications
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   /// Initialize Firebase and notification services
   static Future<void> initNotifications() async {
@@ -55,15 +57,16 @@ class FirebaseApi {
   /// Request notification permissions
   static Future<void> _requestPermissions() async {
     // Request FCM permissions
-    final NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+    final NotificationSettings settings = await _firebaseMessaging
+        .requestPermission(
+          alert: true,
+          announcement: false,
+          badge: true,
+          carPlay: false,
+          criticalAlert: false,
+          provisional: false,
+          sound: true,
+        );
 
     // Request system notification permissions (Android 13+)
     if (!kIsWeb) {
@@ -76,11 +79,11 @@ class FirebaseApi {
   /// Initialize local notifications
   static Future<void> _initLocalNotifications() async {
     // Android initialization settings
-    const AndroidInitializationSettings androidSettings = 
+    const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // iOS initialization settings
-    const DarwinInitializationSettings iosSettings = 
+    const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
           requestAlertPermission: true,
           requestBadgePermission: true,
@@ -114,7 +117,9 @@ class FirebaseApi {
     );
 
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
@@ -130,7 +135,8 @@ class FirebaseApi {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
     // Handle initial message when app is opened from notification
-    final RemoteMessage? initialMessage = await _firebaseMessaging.getInitialMessage();
+    final RemoteMessage? initialMessage = await _firebaseMessaging
+        .getInitialMessage();
     if (initialMessage != null) {
       _handleNotificationTap(initialMessage);
     }
@@ -142,10 +148,10 @@ class FirebaseApi {
       final String? token = await _firebaseMessaging.getToken();
       if (token != null) {
         print('FCM Token: $token');
-        
+
         // Send token to server and store locally
         await NotificationService.updateFCMToken(token);
-        
+
         return token;
       }
     } catch (e) {
@@ -171,7 +177,7 @@ class FirebaseApi {
   /// Handle foreground messages
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
     print('Handling foreground message: ${message.messageId}');
-    
+
     // Show local notification when app is in foreground
     await _showLocalNotification(message);
   }
@@ -192,7 +198,7 @@ class FirebaseApi {
   /// Handle local notification tap
   static void _onNotificationTapped(NotificationResponse response) {
     print('Local notification tapped: ${response.payload}');
-    
+
     if (response.payload != null) {
       try {
         final Map<String, dynamic> data = jsonDecode(response.payload!);
@@ -206,16 +212,17 @@ class FirebaseApi {
   /// Show local notification
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     final Map<String, dynamic> data = message.data;
-    
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'autovisionhub_channel',
-      'AutoVisionHub Notifications',
-      channelDescription: 'Notifications for messages and updates',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-      color: Color(0xFFFF6B35), // Your app's primary color
-    );
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'autovisionhub_channel',
+          'AutoVisionHub Notifications',
+          channelDescription: 'Notifications for messages and updates',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          color: Color(0xFFFF6B35), // Your app's primary color
+        );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -262,7 +269,7 @@ class FirebaseApi {
           );
         }
         break;
-      
+
       case 'group_message':
         if (targetId != null) {
           Navigator.of(context).pushNamed(
@@ -274,22 +281,20 @@ class FirebaseApi {
           );
         }
         break;
-      
+
       case 'event_booking':
         if (targetId != null) {
-          Navigator.of(context).pushNamed(
-            '/event',
-            arguments: {'eventId': targetId},
-          );
+          Navigator.of(
+            context,
+          ).pushNamed('/event', arguments: {'eventId': targetId});
         }
         break;
-      
+
       default:
         // Navigate to home screen
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/communityMemberHome',
-          (route) => false,
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/communityMemberHome', (route) => false);
         break;
     }
   }
@@ -347,7 +352,7 @@ class FirebaseApi {
         'message': message,
         'recipientUserId': recipientUserId,
       };
-      
+
       // This would be sent to your backend API which handles FCM
       print('Sending chat notification: $notificationData');
     } catch (e) {
@@ -373,7 +378,7 @@ class FirebaseApi {
         'message': message,
         'memberIds': memberIds,
       };
-      
+
       // This would be sent to your backend API which handles FCM
       print('Sending group notification: $notificationData');
     } catch (e) {

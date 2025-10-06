@@ -53,7 +53,7 @@ class AuthController {
       HiveUtils.putData('token', data['token']);
       HiveUtils.loginSession();
       HiveUtils.putData('role', role);
-      
+
       // Update FCM token after successful login
       try {
         final fcmToken = await FirebaseMessaging.instance.getToken();
@@ -63,7 +63,7 @@ class AuthController {
       } catch (e) {
         debugPrint('Error updating FCM token after login: $e');
       }
-      
+
       return "Login successful";
     } else {
       return "Wrong email or password";
@@ -79,7 +79,6 @@ class AuthController {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        
       );
 
       if (response.statusCode == 200) {
@@ -160,10 +159,10 @@ class AuthController {
     try {
       // Clear notification service FCM token
       await NotificationService.clearFCMToken();
-      
+
       // Clear all session data
       await HiveUtils.logOutSession();
-      
+
       debugPrint('Local data cleared successfully');
     } catch (e) {
       debugPrint('Error clearing local data: $e');

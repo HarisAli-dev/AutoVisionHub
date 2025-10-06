@@ -39,10 +39,7 @@ class _EditGroupListScreenState extends State<EditGroupListScreen> {
         isLoading = false;
       });
       if (mounted) {
-        CustomSnackbars.showErrorSnackbar(
-          context,
-          'Error loading groups: $e',
-        );
+        CustomSnackbars.showErrorSnackbar(context, 'Error loading groups: $e');
       }
     }
   }
@@ -61,18 +58,12 @@ class _EditGroupListScreenState extends State<EditGroupListScreen> {
         }
       } else {
         if (mounted) {
-          CustomSnackbars.showErrorSnackbar(
-            context,
-            'Failed to delete group',
-          );
+          CustomSnackbars.showErrorSnackbar(context, 'Failed to delete group');
         }
       }
     } catch (e) {
       if (mounted) {
-        CustomSnackbars.showErrorSnackbar(
-          context,
-          'Error deleting group: $e',
-        );
+        CustomSnackbars.showErrorSnackbar(context, 'Error deleting group: $e');
       }
     }
   }
@@ -121,106 +112,96 @@ class _EditGroupListScreenState extends State<EditGroupListScreen> {
         child: isLoading
             ? Center(child: CircularProgressIndicator())
             : groups.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.group_off,
-                          size: 64,
-                          color: Colors.grey,
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group_off, size: 64, color: Colors.grey),
+                    SizedBox(height: screenHeight * 0.02),
+                    Text(
+                      'No groups found',
+                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              )
+            : RefreshIndicator(
+                onRefresh: _loadGroups,
+                child: ListView.builder(
+                  itemCount: groups.length,
+                  itemBuilder: (context, index) {
+                    final group = groups[index];
+                    return Card(
+                      margin: EdgeInsets.only(bottom: screenHeight * 0.01),
+                      elevation: 2,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.appBarColor,
+                          backgroundImage: group.imageUrl != null
+                              ? NetworkImage(group.imageUrl!)
+                              : null,
+                          child: group.imageUrl == null
+                              ? Icon(
+                                  Icons.group,
+                                  color: AppColors.foregroundColor,
+                                )
+                              : null,
                         ),
-                        SizedBox(height: screenHeight * 0.02),
-                        Text(
-                          'No groups found',
+                        title: Text(
+                          group.name,
                           style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadGroups,
-                    child: ListView.builder(
-                      itemCount: groups.length,
-                      itemBuilder: (context, index) {
-                        final group = groups[index];
-                        return Card(
-                          margin: EdgeInsets.only(bottom: screenHeight * 0.01),
-                          elevation: 2,
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppColors.appBarColor,
-                              backgroundImage: group.imageUrl != null
-                                  ? NetworkImage(group.imageUrl!)
-                                  : null,
-                              child: group.imageUrl == null
-                                  ? Icon(
-                                      Icons.group,
-                                      color: AppColors.foregroundColor,
-                                    )
-                                  : null,
-                            ),
-                            title: Text(
-                              group.name,
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (group.description != null)
+                              Text(
+                                group.description!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            Text(
+                              '${group.participants.length} members',
                               style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                color: Colors.grey[600],
+                                fontSize: 12,
                               ),
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (group.description != null)
-                                  Text(
-                                    group.description!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        EditGroupScreen(group: group),
                                   ),
-                                Text(
-                                  '${group.participants.length} members',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                                );
+                                if (result == true) {
+                                  _loadGroups(); // Reload if group was updated
+                                }
+                              },
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EditGroupScreen(
-                                          group: group,
-                                        ),
-                                      ),
-                                    );
-                                    if (result == true) {
-                                      _loadGroups(); // Reload if group was updated
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _showDeleteConfirmation(
-                                    group.id,
-                                    group.name,
-                                  ),
-                                ),
-                              ],
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.red),
+                              onPressed: () =>
+                                  _showDeleteConfirmation(group.id, group.name),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
       ),
     );
   }

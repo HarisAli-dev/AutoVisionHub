@@ -426,7 +426,6 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                   CustomSnackbars.showErrorSnackbar(
                     context,
                     'Failed to delete ${event.eventName}',
-               
                   );
                 }
 

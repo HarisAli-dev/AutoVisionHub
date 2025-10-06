@@ -24,23 +24,22 @@ class LiveStreamScreen extends StatefulWidget {
   State<LiveStreamScreen> createState() => _LiveStreamScreenState();
 }
 
-class _LiveStreamScreenState extends State<LiveStreamScreen> 
+class _LiveStreamScreenState extends State<LiveStreamScreen>
     with SingleTickerProviderStateMixin {
-  
   // State variables
   bool _isLoading = false;
   bool _isLiveStreamActive = false;
   String? _currentRoomId;
   Map<String, dynamic>? _liveStreamStatus;
-  
+
   // Socket service instance
   final SocketService _socketService = SocketService();
-  
-  
+
   // Controllers
   final TextEditingController _streamTitleController = TextEditingController();
-  final TextEditingController _streamDescriptionController = TextEditingController();
-  
+  final TextEditingController _streamDescriptionController =
+      TextEditingController();
+
   // Animation controller for live indicator
   late AnimationController _animationController;
   late Animation<double> _pulseAnimation;
@@ -57,7 +56,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     _initializeStreamData();
     _checkExistingLiveStream();
     _initializeSocket();
-    
+
     // TODO: Initialize chatbot service
     // _initializeChatbot();
   }
@@ -114,7 +113,6 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
           }
         },
       );
-
     } catch (e) {
       debugPrint('Error initializing socket: $e');
     }
@@ -123,10 +121,10 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
   /// Handle when the stream ends (for audience)
   void _handleStreamEnded(dynamic data) {
     if (!mounted) return;
-    
+
     // Leave the socket room
     _socketService.leaveLiveStreamRoom();
-    
+
     // Show dialog and navigate back to event details
     showDialog(
       context: context,
@@ -148,7 +146,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
         ],
       ),
     );
-    
+
     // Update local state
     setState(() {
       _isLiveStreamActive = false;
@@ -159,14 +157,14 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
   /// Handle recording status changes
   void _handleRecordingStatusChanged(dynamic data) {
     if (!mounted) return;
-    
+
     final status = data['status'];
     debugPrint('Recording status changed to: $status');
-    
+
     setState(() {
       _isLiveStreamActive = status == 'recording';
     });
-    
+
     if (status == 'stopped') {
       CustomSnackbars.showInfoSnackbar(context, 'Recording has stopped', 3.0);
     }
@@ -175,10 +173,10 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
   /// Handle viewer count changes
   void _handleViewerCountChanged(dynamic data) {
     if (!mounted) return;
-    
+
     final viewerCount = data['viewerCount'];
     debugPrint('Viewer count changed to: $viewerCount');
-    
+
     // Update UI if needed
     if (_liveStreamStatus != null) {
       setState(() {
@@ -190,22 +188,26 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
   /// Handle user joined stream
   void _handleUserJoinedStream(dynamic data) {
     if (!mounted) return;
-    
+
     final userName = data['userName'];
     final isHost = data['isHost'] ?? false;
-    
+
     if (!isHost) {
-      CustomSnackbars.showInfoSnackbar(context, '$userName joined the stream', 2.0);
+      CustomSnackbars.showInfoSnackbar(
+        context,
+        '$userName joined the stream',
+        2.0,
+      );
     }
   }
 
   /// Handle user left stream
   void _handleUserLeftStream(dynamic data) {
     if (!mounted) return;
-    
+
     final userId = data['userId'];
     debugPrint('User $userId left the stream');
-    
+
     // Update viewer count if available
     final viewerCount = data['viewerCount'];
     if (viewerCount != null && _liveStreamStatus != null) {
@@ -221,15 +223,11 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
       duration: const Duration(seconds: 1),
       vsync: this,
     );
-    
-    _pulseAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
+
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
     _animationController.repeat(reverse: true);
   }
 
@@ -251,9 +249,11 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     }
 
     setState(() => _isLoading = true);
-    
+
     try {
-      final status = await LiveStreamService.getLiveStreamStatus(widget.event.id!);
+      final status = await LiveStreamService.getLiveStreamStatus(
+        widget.event.id!,
+      );
       if (status != null && mounted) {
         setState(() {
           _isLiveStreamActive = status['isActive'] ?? false;
@@ -337,12 +337,12 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
 
     try {
       final success = await LiveStreamService.joinLiveStream(_currentRoomId!);
-      
+
       if (success && mounted) {
         // Join Socket.IO room for real-time events
         _socketService.joinLiveStreamRoom(_currentRoomId!);
         debugPrint('Joined Socket.IO room: $_currentRoomId');
-        
+
         // Navigate to Zego live streaming page as audience
         LiveStreamService.navigateToAudienceLiveStream(
           context: context,
@@ -378,7 +378,9 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Stop Live Stream'),
-        content: const Text('Are you sure you want to stop the live stream? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to stop the live stream? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -441,7 +443,8 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     if (widget.event.images.isNotEmpty) {
       VideoPlayerService.showVideoPlayerDialog(
         context,
-        videoUrl: widget.event.images.first, // Assuming first image might be video
+        videoUrl:
+            widget.event.images.first, // Assuming first image might be video
         autoPlay: false,
       );
     } else {
@@ -506,7 +509,10 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                   scale: _pulseAnimation.value,
                   child: Container(
                     margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(4),
@@ -536,10 +542,13 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                   const SizedBox(height: 24),
                   _buildLiveStreamStatus(),
                   const SizedBox(height: 24),
-                  if (widget.isHost) _buildHostControls() else _buildAudienceControls(),
+                  if (widget.isHost)
+                    _buildHostControls()
+                  else
+                    _buildAudienceControls(),
                   const SizedBox(height: 24),
                   _buildAdditionalFeatures(),
-                  
+
                   // TODO: Add chatbot interface
                   // const SizedBox(height: 24),
                   // _buildChatbotInterface(),
@@ -579,24 +588,18 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                   ),
                 ),
               ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Event details
             Text(
               widget.event.eventName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               widget.event.eventDescription,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             Row(
@@ -635,12 +638,16 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
             Row(
               children: [
                 Icon(
-                  _isLiveStreamActive ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  _isLiveStreamActive
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
                   color: _isLiveStreamActive ? Colors.red : Colors.grey,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _isLiveStreamActive ? 'Live Stream Active' : 'Live Stream Inactive',
+                  _isLiveStreamActive
+                      ? 'Live Stream Active'
+                      : 'Live Stream Inactive',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -676,7 +683,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             if (!_isLiveStreamActive) ...[
               // Stream setup form
               TextField(
@@ -696,7 +703,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Start stream button
               SizedBox(
                 width: double.infinity,
@@ -761,7 +768,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             if (_isLiveStreamActive) ...[
               SizedBox(
                 width: double.infinity,
@@ -817,7 +824,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            
+
             // Recorded content
             ListTile(
               leading: Icon(Icons.video_library, color: AppColors.primary),
@@ -825,7 +832,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
               subtitle: const Text('Watch previous recordings of this event'),
               onTap: _showRecordedContent,
             ),
-            
+
             // Share event
             ListTile(
               leading: Icon(Icons.share, color: AppColors.primary),
@@ -840,7 +847,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                 );
               },
             ),
-            
+
             // Event analytics (for hosts)
             if (widget.isHost)
               ListTile(

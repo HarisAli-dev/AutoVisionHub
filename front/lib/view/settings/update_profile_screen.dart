@@ -142,7 +142,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                             CustomSnackbars.showErrorSnackbar(
                                               context,
                                               'Failed to upload image',
-                                          
                                             );
                                           }
                                         });
@@ -181,7 +180,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                                             CustomSnackbars.showErrorSnackbar(
                                               context,
                                               'Failed to upload image',
-                                          
                                             );
                                           }
                                         });
@@ -270,7 +268,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                         CustomSnackbars.showErrorSnackbar(
                           context,
                           'Failed to update profile',
-                         
                         );
                         return;
                       }

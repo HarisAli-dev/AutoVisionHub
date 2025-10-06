@@ -5,7 +5,8 @@ import 'package:front/config/app_config.dart';
 
 class NotificationService {
   static const String _fcmTokenKey = 'fcm_token';
-  static const String _authTokenKey = 'token'; // Match the key used in AuthController
+  static const String _authTokenKey =
+      'token'; // Match the key used in AuthController
 
   /// Update FCM token on the server
   static Future<bool> updateFCMToken(String fcmToken) async {
@@ -24,9 +25,7 @@ class NotificationService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $authToken',
         },
-        body: jsonEncode({
-          'fcmToken': fcmToken,
-        }),
+        body: jsonEncode({'fcmToken': fcmToken}),
       );
 
       if (response.statusCode == 200) {
@@ -92,7 +91,7 @@ class NotificationService {
   /// Check if FCM token needs to be updated
   static Future<void> syncFCMTokenIfNeeded(String currentToken) async {
     final storedToken = getStoredFCMToken();
-    
+
     if (storedToken != currentToken) {
       print('FCM token changed, updating on server...');
       await updateFCMToken(currentToken);

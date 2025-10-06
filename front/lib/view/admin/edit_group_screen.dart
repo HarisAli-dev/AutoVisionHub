@@ -8,10 +8,7 @@ import '../../utils/snackbars.dart';
 class EditGroupScreen extends StatefulWidget {
   final Group group;
 
-  const EditGroupScreen({
-    Key? key,
-    required this.group,
-  }) : super(key: key);
+  const EditGroupScreen({Key? key, required this.group}) : super(key: key);
 
   @override
   State<EditGroupScreen> createState() => _EditGroupScreenState();
@@ -21,7 +18,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   bool _isLoading = false;
   File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
@@ -56,10 +53,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        CustomSnackbars.showErrorSnackbar(
-          context,
-          'Failed to pick image: $e',
-        );
+        CustomSnackbars.showErrorSnackbar(context, 'Failed to pick image: $e');
       }
     }
   }
@@ -115,23 +109,20 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
       child: _selectedImage != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                _selectedImage!,
-                fit: BoxFit.cover,
-              ),
+              child: Image.file(_selectedImage!, fit: BoxFit.cover),
             )
           : widget.group.imageUrl?.isNotEmpty == true
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    widget.group.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildImagePlaceholder();
-                    },
-                  ),
-                )
-              : _buildImagePlaceholder(),
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                widget.group.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildImagePlaceholder();
+                },
+              ),
+            )
+          : _buildImagePlaceholder(),
     );
   }
 
@@ -139,18 +130,11 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.group,
-          size: 60,
-          color: Colors.grey[400],
-        ),
+        Icon(Icons.group, size: 60, color: Colors.grey[400]),
         const SizedBox(height: 8),
         Text(
           'Group Image',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
         ),
       ],
     );
@@ -181,10 +165,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
               onPressed: _updateGroup,
               child: const Text(
                 'Save',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -197,10 +178,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Image Section
-              GestureDetector(
-                onTap: _pickImage,
-                child: _buildImageSection(),
-              ),
+              GestureDetector(onTap: _pickImage, child: _buildImageSection()),
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
@@ -292,8 +270,14 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
                     ),
                     const SizedBox(height: 12),
                     _buildInfoRow('Group ID', widget.group.id),
-                    _buildInfoRow('Created By', widget.group.createdBy ?? 'Unknown'),
-                    _buildInfoRow('Members', '${widget.group.participants.length}'),
+                    _buildInfoRow(
+                      'Created By',
+                      widget.group.createdBy ?? 'Unknown',
+                    ),
+                    _buildInfoRow(
+                      'Members',
+                      '${widget.group.participants.length}',
+                    ),
                     _buildInfoRow(
                       'Created',
                       widget.group.createdAt.toLocal().toString().split('.')[0],
@@ -318,19 +302,13 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
             width: 100,
             child: Text(
               '$label:',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
             ),
           ),
         ],

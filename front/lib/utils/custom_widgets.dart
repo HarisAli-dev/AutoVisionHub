@@ -25,11 +25,11 @@ class CustomWidgets {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: TextFormField(
-              keyboardType: isphone 
+              keyboardType: isphone
                   ? TextInputType.phone
                   : isnumber
-                      ? TextInputType.number
-                      : TextInputType.text,
+                  ? TextInputType.number
+                  : TextInputType.text,
               controller: controller,
               obscureText: provider.obscureText,
               enabled: !disabled,

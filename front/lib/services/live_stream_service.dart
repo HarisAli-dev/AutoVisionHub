@@ -287,9 +287,11 @@ class LiveStreamService {
     // Start periodic stream status checking (less frequent, as backup only)
     Timer? statusCheckTimer;
     bool streamEnded = false;
-    
+
     // Use the event ID for status checking instead of roomId, and check less frequently
-    statusCheckTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
+    statusCheckTimer = Timer.periodic(const Duration(seconds: 15), (
+      timer,
+    ) async {
       try {
         final status = await getLiveStreamStatus(event.id!);
         if (status == null || status['isActive'] != true) {
@@ -330,7 +332,7 @@ class LiveStreamService {
     try {
       await leaveLiveStream(roomId);
       debugPrint('Successfully left live stream in backend');
-      
+
       // If stream ended while in Zego, show notification
       if (streamEnded) {
         // Show a snackbar or dialog indicating stream ended

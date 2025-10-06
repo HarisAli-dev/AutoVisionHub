@@ -4,6 +4,7 @@ class HiveUtils {
   static Box getSessionBox() {
     return Hive.box('sessionBox');
   }
+
   static Future<bool> putData(String key, dynamic value) async {
     final box = getSessionBox();
     await box.put(key, value);
@@ -19,17 +20,17 @@ class HiveUtils {
 
   static Future<bool> logOutSession() async {
     final box = getSessionBox();
-    
+
     // Clear all user session data
     await box.put('isLoggedIn', false);
     await box.delete('userId');
     await box.delete('name');
     await box.delete('token');
     await box.delete('role');
-    
+
     // Clear any other session-related data
     await box.delete('fcm_token');
-    
+
     return true;
   }
 

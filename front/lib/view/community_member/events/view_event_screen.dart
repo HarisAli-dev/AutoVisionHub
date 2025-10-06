@@ -21,7 +21,7 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
   int _currentImageIndex = 0;
   Timer? _timer;
   List<String> images = [];
-  
+
   // Live stream related variables
   bool _isCheckingLiveStream = false;
   Map<String, dynamic>? _liveStreamStatus;
@@ -160,13 +160,15 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
   // Live stream methods
   Future<void> _checkLiveStreamStatus() async {
     if (widget.event.id == null) return;
-    
+
     setState(() {
       _isCheckingLiveStream = true;
     });
 
     try {
-      final status = await LiveStreamService.getLiveStreamStatus(widget.event.id!);
+      final status = await LiveStreamService.getLiveStreamStatus(
+        widget.event.id!,
+      );
       if (mounted) {
         setState(() {
           _liveStreamStatus = status;
@@ -308,7 +310,8 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                   SizedBox(height: AppSizes.getScreenHeight(context) * 0.04),
 
                   // Live Stream Button (if active)
-                  if (_liveStreamStatus != null && _liveStreamStatus!['isActive'] == true)
+                  if (_liveStreamStatus != null &&
+                      _liveStreamStatus!['isActive'] == true)
                     Column(
                       children: [
                         Container(
@@ -316,10 +319,7 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                           height: AppSizes.getScreenHeight(context) * 0.06,
                           child: ElevatedButton.icon(
                             onPressed: _navigateToLiveStream,
-                            icon: Icon(
-                              Icons.live_tv,
-                              color: Colors.white,
-                            ),
+                            icon: Icon(Icons.live_tv, color: Colors.white),
                             label: Text(
                               'Watch Live Stream',
                               style: TextStyle(
@@ -339,7 +339,9 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
+                        SizedBox(
+                          height: AppSizes.getScreenHeight(context) * 0.02,
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -362,7 +364,9 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                             ),
                           ],
                         ),
-                        SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
+                        SizedBox(
+                          height: AppSizes.getScreenHeight(context) * 0.02,
+                        ),
                       ],
                     ),
 

@@ -16,7 +16,7 @@ class ValidationHelpers {
 
     // Remove all non-digit characters except plus sign for counting
     String digitsOnly = value.replaceAll(RegExp(r'[^\d+]'), '');
-    
+
     // Check if it contains invalid characters
     if (!RegExp(r'^[\d\s\-\(\)\+]+$').hasMatch(value)) {
       return 'Phone number can only contain digits, spaces, hyphens, parentheses, and plus sign';
@@ -26,12 +26,12 @@ class ValidationHelpers {
     if (digitsOnly.startsWith('+')) {
       // Remove the plus sign for digit counting
       String withoutPlus = digitsOnly.substring(1);
-      
+
       // Country code should be 1-3 digits, followed by 7-12 more digits
       if (withoutPlus.length < 8 || withoutPlus.length > 15) {
         return 'Phone number with country code should be 8-15 digits long';
       }
-      
+
       // Check if country code format is valid (1-3 digits followed by local number)
       if (!RegExp(r'^\d{1,3}\d{7,12}$').hasMatch(withoutPlus)) {
         return 'Invalid phone number format with country code';
@@ -118,7 +118,7 @@ class ValidationHelpers {
   static String formatPhoneNumber(String phoneNumber) {
     // Remove all non-digit characters except plus
     String cleaned = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-    
+
     if (cleaned.startsWith('+')) {
       // International format
       return cleaned;
@@ -129,7 +129,7 @@ class ValidationHelpers {
       // US format with country code: +1 (123) 456-7890
       return '+1 (${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7)}';
     }
-    
+
     return phoneNumber; // Return original if no formatting rule matches
   }
 }

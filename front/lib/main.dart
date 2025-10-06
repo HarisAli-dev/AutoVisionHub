@@ -66,7 +66,7 @@ class MyApp extends StatelessWidget {
         },
         onGenerateRoute: (settings) {
           final args = settings.arguments as Map<String, dynamic>?;
-          
+
           switch (settings.name) {
             case '/chat':
               return MaterialPageRoute(
