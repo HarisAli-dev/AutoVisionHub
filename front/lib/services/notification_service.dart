@@ -1,6 +1,7 @@
 import 'dart:convert';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:hive/hive.dart';
+
 import 'package:front/config/app_config.dart';
 
 class NotificationService {

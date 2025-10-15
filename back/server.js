@@ -33,12 +33,20 @@ app.use('/api/auth', require('./routes/users/authRoutes'));
 app.use('/api/chat', require('./routes/chats/chatRoutes'));
 app.use('/api/chatMessage', require('./routes/chats/chatMessageRoutes'));
 app.use('/api/group', require('./routes/groups/groupRoutes'));
-app.use('/api/groupMessage', require('./routes/groups/GroupMessageRoutes'));
+app.use('/api/groupMessage', require('./routes/groups/groupMessageRoutes'));
 app.use('/api/poll', require('./routes/groups/pollRoutes'));
 app.use('/api/event', require('./routes/events/eventRoutes'));
 app.use('/api/livestream', require('./routes/events/liveStreamRoutes'));
 app.use('/api/media', require('./routes/mediaRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
+
+// Marketplace routes
+app.use('/api/marketplace/listings', require('./routes/marketplace/listingRoutes'));
+app.use('/api/marketplace/bids', require('./routes/marketplace/bidRoutes'));
+app.use('/api/marketplace/offers', require('./routes/marketplace/offerRoutes'));
+app.use('/api/marketplace/chat', require('./routes/marketplace/chatRoutes'));
+
 
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is working!' });
@@ -238,7 +246,7 @@ io.on('connection', (socket) => {
     console.log('User disconnected');
   });
 });
-
-server.listen(process.env.PORT || 8080, '0.0.0.0', () => {
-  console.log(`Server is running`);
+const port = process.env.PORT || 8080;
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
 });

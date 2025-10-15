@@ -247,7 +247,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
 
               // Action Button
               SizedBox(
-                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
@@ -255,7 +254,6 @@ class _EditEventScreenState extends State<EditEventScreen> {
                         CustomSnackbars.showErrorSnackbar(
                           context,
                           'Please select event date and time',
-              
                         );
                         return;
                       }
@@ -606,43 +604,42 @@ class _EditEventScreenState extends State<EditEventScreen> {
     final response = await EventController.uploadImagesToCloudinary(
       selectedImages,
     );
-    if (response.statusCode == 200) {
-      final List<String> imageUrls = response.body['secure_urls'];
-      await EventController.saveEditedTicketEvent(
-        eventId: widget.event.id!,
-        eventName: eventNameController.text,
-        eventDescription: eventDescriptionController.text,
-        eventDateTime: selectedDateTime!,
-        eventLocation: eventLocationController.text,
-        ticketPrice: double.parse(priceController.text),
-        totalTickets: widget.event.ticketList!,
-        images: [...existingImageUrls, ...imageUrls],
-      );
-      CustomSnackbars.showSuccessSnackbar(
-        context,
-        'Event updated successfully',
-        2.0,
-      );
 
-      // Create updated event model
-      final updatedEvent = EventModel(
-        id: widget.event.id,
-        eventName: eventNameController.text,
-        eventDescription: eventDescriptionController.text,
-        eventDateTime: selectedDateTime!,
-        eventLocation: eventLocationController.text,
-        bookingType: isSeatBooking ? 'seat' : 'ticket',
-        images: [...existingImageUrls, ...selectedImages.map((e) => e.path)],
-        ticketPrice: double.parse(priceController.text),
-        createdBy: widget.event.createdBy,
-        layout: widget.event.layout,
-        ticketList: widget.event.ticketList,
-        createdAt: widget.event.createdAt,
-        updatedAt: DateTime.now(),
-      );
+    final List<String> imageUrls = response;
+    await EventController.saveEditedTicketEvent(
+      eventId: widget.event.id!,
+      eventName: eventNameController.text,
+      eventDescription: eventDescriptionController.text,
+      eventDateTime: selectedDateTime!,
+      eventLocation: eventLocationController.text,
+      ticketPrice: double.parse(priceController.text),
+      totalTickets: widget.event.ticketList!,
+      images: [...existingImageUrls, ...imageUrls],
+    );
+    CustomSnackbars.showSuccessSnackbar(
+      context,
+      'Event updated successfully',
+      2.0,
+    );
 
-      Navigator.pop(context, updatedEvent);
-    }
+    // Create updated event model
+    final updatedEvent = EventModel(
+      id: widget.event.id,
+      eventName: eventNameController.text,
+      eventDescription: eventDescriptionController.text,
+      eventDateTime: selectedDateTime!,
+      eventLocation: eventLocationController.text,
+      bookingType: isSeatBooking ? 'seat' : 'ticket',
+      images: [...existingImageUrls, ...selectedImages.map((e) => e.path)],
+      ticketPrice: double.parse(priceController.text),
+      createdBy: widget.event.createdBy,
+      layout: widget.event.layout,
+      ticketList: widget.event.ticketList,
+      createdAt: widget.event.createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    Navigator.pop(context, updatedEvent);
   }
 
   // Save the edited seat event

@@ -123,7 +123,6 @@ class _GroupScreenState extends State<GroupScreen> {
       CustomSnackbars.showErrorSnackbar(
         context,
         'Failed to load messages: ${e.toString()}',
-
       );
     }
   }
@@ -579,7 +578,6 @@ class _GroupScreenState extends State<GroupScreen> {
         CustomSnackbars.showErrorSnackbar(
           context,
           'Failed to delete message: ${e.toString()}',
-      
         );
       }
     }
@@ -647,7 +645,9 @@ class _GroupScreenState extends State<GroupScreen> {
                   borderRadius: BorderRadius.circular(16.0),
                 ),
                 child: Container(
-                  padding: EdgeInsets.all(AppSizes.containerPadding(context)),
+                  padding: EdgeInsets.all(
+                    AppSizes.containerPadding(context) * 0.01,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe ? AppColors.primary : AppColors.shadeColor,
                     borderRadius: BorderRadius.only(

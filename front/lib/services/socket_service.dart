@@ -50,11 +50,15 @@ class SocketService {
     try {
       // Initialize the socket connection
       socket = IO.io(
-        apiUrl, // from main.dart
+        apiUrl.replaceAll(
+          '/api',
+          '',
+        ), // Remove /api suffix for socket connection
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .disableAutoConnect()
             .setExtraHeaders({'Authorization': 'Bearer $token'})
+            .enableForceNew()
             .build(),
       );
 
@@ -287,7 +291,7 @@ class SocketService {
       socket.emit('join_live_stream', {
         'roomId': roomId,
         'userId': _userId,
-        'userName': HiveUtils.getData('username') ?? 'Unknown User',
+        'userName': HiveUtils.getData('name') ?? 'Unknown User',
       });
       debugPrint('Joined live stream room: $roomId');
     } else {

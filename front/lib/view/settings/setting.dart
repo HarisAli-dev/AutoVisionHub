@@ -7,6 +7,7 @@ import 'package:front/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:front/view/settings/change_password.dart';
 import 'package:front/view/settings/update_profile_screen.dart';
+import 'package:front/view/settings/customer_support_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final String userId;
@@ -51,6 +52,18 @@ class SettingsScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ChangePasswordScreen(userId: userId),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.support_agent, color: AppColors.primary),
+              title: Text('Customer Support'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CustomerSupportScreen(userId: userId),
                   ),
                 );
               },

@@ -5,8 +5,8 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/view/community_member/events/seat_booking_screen.dart';
 import 'package:front/view/community_member/events/ticket_booking_screen.dart';
-import 'package:front/view/community_member/events/live_stream_screen.dart';
 import 'package:front/services/live_stream_service.dart';
+import 'package:front/services/socket_service.dart';
 
 class ViewEventScreen extends StatefulWidget {
   final EventModel event;
@@ -191,17 +191,44 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
     });
   }
 
-  void _navigateToLiveStream() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LiveStreamScreen(
-          event: widget.event,
-          isHost: false, // Community member is always audience
-          existingRoomId: _liveStreamStatus?['roomId'],
+  void _navigateToLiveStream() async {
+    if (_liveStreamStatus == null || _liveStreamStatus!['roomId'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Live stream is not available'),
+          backgroundColor: Colors.red,
         ),
-      ),
+      );
+      return;
+    }
+
+    // Join the live stream first
+    final success = await LiveStreamService.joinLiveStream(
+      _liveStreamStatus!['roomId'],
     );
+
+    if (success) {
+      // Join Socket.IO room for real-time events
+      final socketService = SocketService();
+      if (!socketService.isConnected) {
+        socketService.init();
+      }
+      socketService.joinLiveStreamRoom(_liveStreamStatus!['roomId']);
+
+      // Navigate directly to Zego live streaming
+      LiveStreamService.navigateToAudienceLiveStream(
+        context: context,
+        roomId: _liveStreamStatus!['roomId'],
+        event: widget.event,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to join live stream'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

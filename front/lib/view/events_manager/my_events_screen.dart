@@ -7,7 +7,7 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/events_manager/edit_event_screen.dart';
-import 'package:front/view/community_member/events/live_stream_screen.dart';
+import 'package:front/view/community_member/events/host_live_stream_screen.dart';
 
 class MyEventsScreen extends StatefulWidget {
   const MyEventsScreen({super.key});
@@ -370,10 +370,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LiveStreamScreen(
-          event: event,
-          isHost: true, // Event manager is always the host
-        ),
+        builder: (context) => HostLiveStreamScreen(event: event),
       ),
     );
   }

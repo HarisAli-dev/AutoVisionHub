@@ -70,6 +70,7 @@ class GroupController {
       );
 
       if (response.statusCode == 200) {
+        debugPrint('Response body: ${response.body}');
         final List<dynamic> jsonData = json.decode(response.body)['groups'];
         return jsonData.map((group) => Group.fromJson(group)).toList();
       } else {
@@ -133,10 +134,7 @@ class GroupController {
         throw Exception('Authentication token not found');
       }
 
-      final Map<String, dynamic> updateData = {};
-      if (groupName != null) updateData['groupName'] = groupName;
-      if (description != null) updateData['description'] = description;
-      if (groupImageUrl != null) updateData['groupImageUrl'] = groupImageUrl;
+      debugPrint('Updating group with image URL: $groupImageUrl');
 
       final response = await http.patch(
         Uri.parse('$apiUrl/group/$groupId'),
@@ -144,8 +142,14 @@ class GroupController {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(updateData),
+        body: json.encode({
+          'groupName': groupName,
+          'description': description,
+          'groupImageUrl': groupImageUrl,
+        }),
       );
+
+      debugPrint('Update group response: ${response.body}');
 
       if (response.statusCode == 200) {
         return true;

@@ -157,21 +157,25 @@ class EventController {
   }
 
   static Future<List<EventModel>> fetchEvents() async {
-    final token = HiveUtils.getData('token');
-    final url = Uri.parse('$apiUrl/event/getMyEvents');
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
+    try {
+      final token = HiveUtils.getData('token');
+      final url = Uri.parse('$apiUrl/event/getMyEvents');
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body)['data'];
-      return jsonData.map((event) => EventModel.fromJson(event)).toList();
-    } else {
-      throw Exception('Failed to fetch events: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = jsonDecode(response.body)['data'];
+        return jsonData.map((event) => EventModel.fromJson(event)).toList();
+      } else {
+        throw Exception('Failed to fetch events: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      throw Exception('Failed to fetch events: $e $stackTrace');
     }
   }
 
@@ -274,5 +278,4 @@ class EventController {
   static Future<bool> deleteImageFromCloudinary(String imageUrl) async {
     return await CloudinaryService.deleteFileByUrl(url: imageUrl);
   }
-  
 }

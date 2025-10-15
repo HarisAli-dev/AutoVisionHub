@@ -15,7 +15,7 @@ class AppConfig {
 
   // API Configuration
   static String get apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.36:8080/api';
+      dotenv.env['API_BASE_URL'] ?? 'https://auto-vision-hub-nkilh.ondigitalocean.app/api';
 
   // Stripe Configuration
   static String get stripePublishableKey =>

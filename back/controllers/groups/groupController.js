@@ -58,9 +58,7 @@ exports.getUserGroups = async (req, res) => {
 // Get all groups (where user is not a participant) 
 exports.getAllGroups = async (req, res) => {
   try {
-    const groups = await Group.find({
-      participants: { $nin: [req.user.id] }
-    })
+    const groups = await Group.find()
       .populate('participants', 'name email profileImageUrl')
       .populate('lastMessage')
       .sort({ updatedAt: -1 });
@@ -110,16 +108,11 @@ exports.updateGroup = async (req, res) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    // Check if user is a participant (you might want to add admin check here)
-    if (!group.participants.includes(userId)) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     // Update fields if provided
-    if (groupName !== undefined) group.groupName = groupName;
-    if (description !== undefined) group.description = description;
-    if (groupImageUrl !== undefined) group.groupImageUrl = groupImageUrl;
-
+    group.groupName = groupName;
+    group.description = description;
+    group.groupImageUrl = groupImageUrl;
+    console.log('Updated group:', group);
     await group.save();
     await group.populate('participants', 'name email profileImageUrl');
 

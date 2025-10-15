@@ -50,7 +50,13 @@ class EventModel {
           : null,
       ticketList: json['ticketList'] != null
           ? (json['ticketList'] as List)
-                .map((i) => TicketModel.fromJson(i))
+                .asMap()
+                .entries
+                .map((entry) => TicketModel(
+                      id: entry.value.toString(),
+                      ticketNumber: entry.key + 1, // Using index + 1 as ticket number
+                      isBooked: false,
+                    ))
                 .toList()
           : null,
       createdAt: json['createdAt'] != null

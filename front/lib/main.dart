@@ -1,4 +1,5 @@
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:front/controller/marketplace/marketplace_controller.dart';
 import 'package:front/splash_screen.dart';
 import 'package:front/view/auth/signin.dart';
 import 'package:front/view/auth/signup.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VideoPlayerProvider()),
         ChangeNotifierProvider(create: (_) => PollProvider()),
         ChangeNotifierProvider(create: (_) => SeatProvider()),
+        ChangeNotifierProvider(create: (_) => MarketplaceController()),
       ],
       child: MaterialApp(
         navigatorKey: FirebaseApi.navigatorKey,

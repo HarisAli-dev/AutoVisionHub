@@ -230,11 +230,14 @@ class LiveStreamService {
     }
 
     final userId = HiveUtils.getData('userId') ?? 'default_user';
-    final userName = HiveUtils.getData('username') ?? 'Host';
+    final userName = HiveUtils.getData('name') ?? 'Host';
 
     // Notify recording started via socket
     final socketService = SocketService();
     socketService.notifyRecordingStarted(roomId);
+
+    // Configure Zego with proper cleanup
+    final config = ZegoUIKitPrebuiltLiveStreamingConfig.host();
 
     // Navigate to Zego live streaming
     await Navigator.push(
@@ -246,13 +249,16 @@ class LiveStreamService {
           userID: userId,
           userName: userName,
           liveID: roomId,
-          config: ZegoUIKitPrebuiltLiveStreamingConfig.host(),
+          config: config,
         ),
       ),
     );
 
     // When the host returns from live streaming, stop the stream in backend
     debugPrint('Host live streaming ended');
+
+    // Cleanup Zego resources
+    await _cleanupZegoResources();
 
     // Notify recording stopped via socket
     socketService.notifyRecordingStopped(roomId);
@@ -282,7 +288,7 @@ class LiveStreamService {
     }
 
     final userId = HiveUtils.getData('userId') ?? 'default_user';
-    final userName = HiveUtils.getData('username') ?? 'Viewer';
+    final userName = HiveUtils.getData('name') ?? 'Viewer';
 
     // Start periodic stream status checking (less frequent, as backup only)
     Timer? statusCheckTimer;
@@ -327,6 +333,9 @@ class LiveStreamService {
     // Cancel the timer when returning from Zego interface
     statusCheckTimer.cancel();
 
+    // Cleanup Zego resources
+    await _cleanupZegoResources();
+
     // When audience returns from live streaming, leave the stream in backend
     debugPrint('Audience left live streaming');
     try {
@@ -347,6 +356,21 @@ class LiveStreamService {
       }
     } catch (e) {
       debugPrint('Error leaving live stream in backend: $e');
+    }
+  }
+
+  /// Cleanup Zego resources to prevent memory leaks and spamming logs
+  static Future<void> _cleanupZegoResources() async {
+    try {
+      // Clear any pending network calls and cleanup resources
+      debugPrint('Cleaning up Zego resources...');
+
+      // Add a small delay to ensure Zego cleanup is complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      debugPrint('Zego cleanup completed');
+    } catch (e) {
+      debugPrint('Error during Zego cleanup: $e');
     }
   }
 

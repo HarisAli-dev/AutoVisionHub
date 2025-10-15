@@ -7,24 +7,22 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-/// Live Stream Screen for events with host and audience capabilities
-class LiveStreamScreen extends StatefulWidget {
+/// Host Live Stream Screen for event creators to manage live streaming
+class HostLiveStreamScreen extends StatefulWidget {
   final EventModel event;
-  final bool isHost; // Whether the current user is the host (event creator)
-  final String? existingRoomId; // For joining existing live streams
+  final String? existingRoomId; // For managing existing live streams
 
-  const LiveStreamScreen({
+  const HostLiveStreamScreen({
     super.key,
     required this.event,
-    this.isHost = false,
     this.existingRoomId,
   });
 
   @override
-  State<LiveStreamScreen> createState() => _LiveStreamScreenState();
+  State<HostLiveStreamScreen> createState() => _HostLiveStreamScreenState();
 }
 
-class _LiveStreamScreenState extends State<LiveStreamScreen>
+class _HostLiveStreamScreenState extends State<HostLiveStreamScreen>
     with SingleTickerProviderStateMixin {
   // State variables
   bool _isLoading = false;
@@ -84,7 +82,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
       _socketService.setLiveStreamCallbacks(
         onLiveStreamEnded: (data) {
           debugPrint('Received live stream ended event: $data');
-          if (mounted && !widget.isHost) {
+          if (mounted) {
             _handleStreamEnded(data);
           }
         },
@@ -118,33 +116,18 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     }
   }
 
-  /// Handle when the stream ends (for audience)
+  /// Handle when the stream ends
   void _handleStreamEnded(dynamic data) {
     if (!mounted) return;
 
     // Leave the socket room
     _socketService.leaveLiveStreamRoom();
 
-    // Show dialog and navigate back to event details
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Stream Ended'),
-        content: Text(
-          data['message'] ?? 'The live stream has ended by the host.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              // Navigate back to event details (pop current live stream screen)
-              Navigator.of(context).pop();
-            },
-            child: const Text('Back to Event'),
-          ),
-        ],
-      ),
+    // Show notification
+    CustomSnackbars.showInfoSnackbar(
+      context,
+      data['message'] ?? 'The live stream has ended.',
+      3.0,
     );
 
     // Update local state
@@ -329,37 +312,29 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     }
   }
 
-  /// Join live streaming as audience
-  Future<void> _joinLiveStream() async {
+  /// Manage existing live streaming
+  Future<void> _manageLiveStream() async {
     if (_currentRoomId == null) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final success = await LiveStreamService.joinLiveStream(_currentRoomId!);
+      // Join Socket.IO room for real-time events
+      _socketService.joinLiveStreamRoom(_currentRoomId!);
+      debugPrint('Host managing Socket.IO room: $_currentRoomId');
 
-      if (success && mounted) {
-        // Join Socket.IO room for real-time events
-        _socketService.joinLiveStreamRoom(_currentRoomId!);
-        debugPrint('Joined Socket.IO room: $_currentRoomId');
-
-        // Navigate to Zego live streaming page as audience
-        LiveStreamService.navigateToAudienceLiveStream(
-          context: context,
-          roomId: _currentRoomId!,
-          event: widget.event,
-        );
-
-        // TODO: Notify chatbot that user joined as audience
-        // ChatbotService.notifyUserJoinedAsAudience(_currentRoomId!, HiveUtils.getData('userId'));
-      } else {
-        throw Exception('Failed to join live stream');
-      }
+      // Navigate to Zego live streaming page as host
+      LiveStreamService.navigateToHostLiveStream(
+        context: context,
+        roomId: _currentRoomId!,
+        event: widget.event,
+        onLiveStreamingEnded: _onLiveStreamEnded,
+      );
     } catch (e) {
       if (mounted) {
         CustomSnackbars.showErrorSnackbar(
           context,
-          'Failed to join live stream: $e',
+          'Failed to manage live stream: $e',
         );
       }
     } finally {
@@ -496,7 +471,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Live Stream - ${widget.event.eventName}',
+          'Host Live Stream - ${widget.event.eventName}',
           style: TextStyle(color: AppColors.foregroundColor),
         ),
         backgroundColor: AppColors.appBarColor,
@@ -542,10 +517,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                   const SizedBox(height: 24),
                   _buildLiveStreamStatus(),
                   const SizedBox(height: 24),
-                  if (widget.isHost)
-                    _buildHostControls()
-                  else
-                    _buildAudienceControls(),
+                  _buildHostControls(),
                   const SizedBox(height: 24),
                   _buildAdditionalFeatures(),
 
@@ -723,7 +695,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _joinLiveStream,
+                  onPressed: _manageLiveStream,
                   icon: const Icon(Icons.videocam),
                   label: const Text('Manage Live Stream'),
                   style: ElevatedButton.styleFrom(
@@ -745,62 +717,6 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Build audience controls
-  Widget _buildAudienceControls() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Viewer Controls',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            if (_isLiveStreamActive) ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _joinLiveStream,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Join Live Stream'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.info_outline, size: 48, color: Colors.grey[600]),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No live stream is currently active for this event.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -849,20 +765,19 @@ class _LiveStreamScreenState extends State<LiveStreamScreen>
             ),
 
             // Event analytics (for hosts)
-            if (widget.isHost)
-              ListTile(
-                leading: Icon(Icons.analytics, color: AppColors.primary),
-                title: const Text('Event Analytics'),
-                subtitle: const Text('View engagement and viewer statistics'),
-                onTap: () {
-                  // TODO: Navigate to analytics page
-                  CustomSnackbars.showSuccessSnackbar(
-                    context,
-                    'Analytics page coming soon!',
-                    2.0,
-                  );
-                },
-              ),
+            ListTile(
+              leading: Icon(Icons.analytics, color: AppColors.primary),
+              title: const Text('Event Analytics'),
+              subtitle: const Text('View engagement and viewer statistics'),
+              onTap: () {
+                // TODO: Navigate to analytics page
+                CustomSnackbars.showSuccessSnackbar(
+                  context,
+                  'Analytics page coming soon!',
+                  2.0,
+                );
+              },
+            ),
           ],
         ),
       ),
