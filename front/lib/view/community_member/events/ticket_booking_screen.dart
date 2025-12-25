@@ -108,9 +108,7 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
                     height: AppSizes.imageHeight(context),
                     color: Colors.grey[300],
                     child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
+                      child: CustomWidgets.circularProgressIndicator(),
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(
@@ -419,7 +417,7 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
           ),
         ),
         child: _isLoading
-            ? CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+            ? CustomWidgets.circularProgressIndicator(strokeWidth: 2.0)
             : Text(
                 'Book $_selectedTickets Ticket${_selectedTickets > 1 ? 's' : ''} - RS ${_totalPrice.toStringAsFixed(2)}',
                 style: TextStyle(

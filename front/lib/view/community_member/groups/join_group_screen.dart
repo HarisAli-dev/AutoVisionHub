@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:front/controller/groups/group_controller.dart';
 import 'package:front/model/groups/group_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/community_member/groups/group_screen.dart';
 import 'package:flutter/material.dart';
@@ -103,7 +104,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CustomWidgets.circularProgressIndicator(),
                   )
                 : _filteredGroups.isEmpty
                 ? Center(

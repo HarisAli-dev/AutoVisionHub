@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:zego_express_engine/zego_express_engine.dart' as ZEGO;
 import 'package:zego_express_engine/zego_express_engine.dart'
     show ZegoCanvas, ZegoBarrageMessageInfo, ZegoRoomState;
@@ -322,7 +323,7 @@ class _LiveStreamHostScreenState extends State<LiveStreamHostScreen> {
               _localVideoView!
             else
               Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+                child: CustomWidgets.circularProgressIndicator(),
               ),
 
             // Top bar

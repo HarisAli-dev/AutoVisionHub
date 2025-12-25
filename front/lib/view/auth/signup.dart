@@ -201,7 +201,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 SizedBox(height: 24),
                 _isLoading
-                    ? Center(child: CircularProgressIndicator())
+                    ? Center(child: CustomWidgets.circularProgressIndicator())
                     : ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {

@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:camera/camera.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:gal/gal.dart';
 
@@ -157,9 +158,8 @@ class _AROverlayScreenState extends State<AROverlayScreen> {
                 SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
+                  child: CustomWidgets.circularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
                 SizedBox(width: 16),
@@ -546,7 +546,7 @@ class _AROverlayScreenState extends State<AROverlayScreen> {
                           child: const Text('Retry'),
                         )
                       else
-                        CircularProgressIndicator(color: Colors.white),
+                        CustomWidgets.circularProgressIndicator(),
                     ],
                   ),
                 ),

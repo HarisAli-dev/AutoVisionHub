@@ -215,7 +215,7 @@ class _CreateThreadScreenState extends State<CreateThreadScreen> {
               ),
               SizedBox(height: AppSizes.largeSpacing(context)),
               _isCreating
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(child: CustomWidgets.circularProgressIndicator())
                   : ElevatedButton(
                       onPressed: _createThread,
                       style: CustomWidgets.elevatedButtonStyle(context),

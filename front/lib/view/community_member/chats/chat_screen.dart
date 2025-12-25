@@ -9,6 +9,7 @@ import 'package:front/services/cloudinary_service.dart';
 import 'package:front/services/socket_service.dart';
 import 'package:front/services/unified_audio_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/group_chat_components.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/snackbars.dart';
@@ -512,7 +513,7 @@ class _ChatScreenState extends State<ChatScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final reportResult = await ReportController.reportUser(
@@ -705,7 +706,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 } else if (snapshot.connectionState ==
                         ConnectionState.waiting &&
                     _messages.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CustomWidgets.circularProgressIndicator());
                 } else {
                   return ListView.builder(
                     controller: _scrollController,

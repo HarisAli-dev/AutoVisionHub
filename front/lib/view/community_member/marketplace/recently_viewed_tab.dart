@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:front/controller/marketplace/marketplace_controller.dart';
 import 'package:front/model/marketplace/listing_model.dart';
@@ -52,7 +53,7 @@ class _RecentlyViewedTabState extends State<RecentlyViewedTab> {
 
         if (controller.isLoading && listings.isEmpty) {
           return Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+            child: CustomWidgets.circularProgressIndicator(),
           );
         }
 

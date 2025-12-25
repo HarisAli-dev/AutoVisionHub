@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:front/controller/marketplace/marketplace_controller.dart';
 import 'package:front/model/marketplace/listing_model.dart';
@@ -226,8 +227,8 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Consumer<MarketplaceController>(
               builder: (context, controller, child) {
                 if (controller.isLoading && controller.messages.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF6B35)),
+                  return Center(
+                    child: CustomWidgets.circularProgressIndicator(),
                   );
                 }
 

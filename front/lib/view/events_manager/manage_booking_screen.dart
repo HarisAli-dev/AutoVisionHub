@@ -3,6 +3,7 @@ import 'package:front/controller/events/booking_controller.dart';
 import 'package:front/model/events/event_model.dart';
 import 'package:front/model/events/booking_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/time_utils.dart';
@@ -57,7 +58,7 @@ class _ManageBookingScreenState extends State<ManageBookingScreen> {
         backgroundColor: AppColors.appBarColor,
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : bookings.isEmpty
           ? _buildEmptyState(context)
           : RefreshIndicator(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:front/model/marketplace/listing_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/view/community_member/marketplace/listing_detail_screen.dart';
 import 'package:front/view/dashboard/widgets/shared/hover_card.dart';
@@ -34,7 +35,7 @@ class TrendingSection extends StatelessWidget {
           Center(
             child: Padding(
               padding: EdgeInsets.all(AppSizes.largeSpacing(context)),
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CustomWidgets.circularProgressIndicator(),
             ),
           )
         else if (trendingListings.isEmpty)

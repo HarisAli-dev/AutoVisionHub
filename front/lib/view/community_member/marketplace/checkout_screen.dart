@@ -267,7 +267,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Consumer<MarketplaceController>(
           builder: (context, controller, _) {
             return controller.isLoading
-                ? CircularProgressIndicator(color: AppColors.titleColor)
+                ? CustomWidgets.circularProgressIndicator()
                 : Text(
                     'Place Order',
                     style: TextStyle(

@@ -178,7 +178,7 @@ class _EditListingScreenState extends State<EditListingScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
     );
 
     try {

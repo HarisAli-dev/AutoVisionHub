@@ -255,7 +255,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) =>  Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final reportResult = await ReportController.reportListItem(
@@ -576,9 +576,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-          ),
+          child: CustomWidgets.circularProgressIndicator(),
         ),
       );
 
@@ -767,7 +765,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       context: context,
                       barrierDismissible: false,
                       builder: (context) =>
-                          const Center(child: CircularProgressIndicator()),
+                         Center(child: CustomWidgets.circularProgressIndicator()),
                     );
 
                     // Fetch all user's chats to check if one already exists with this seller
@@ -1738,7 +1736,7 @@ class _AddOrEditReviewState extends State<_AddOrEditReview> {
                         context: context,
                         barrierDismissible: false,
                         builder: (context) =>
-                            const Center(child: CircularProgressIndicator()),
+                          Center(child: CustomWidgets.circularProgressIndicator()),
                       );
 
                       final success = await controller.addOrUpdateReview(

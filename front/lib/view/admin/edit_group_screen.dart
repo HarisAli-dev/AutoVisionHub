@@ -192,10 +192,7 @@ class _EditGroupScreenState extends State<EditGroupScreen> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
+                  child: CustomWidgets.circularProgressIndicator(strokeWidth: 2.0)
                 ),
               ),
             )

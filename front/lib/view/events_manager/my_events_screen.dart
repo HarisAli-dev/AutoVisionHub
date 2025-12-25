@@ -4,6 +4,7 @@ import 'package:front/model/events/event_model.dart';
 import 'package:front/model/events/seats_model.dart';
 import 'package:front/services/cloudinary_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/events_manager/edit_event_screen.dart';
@@ -48,7 +49,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         initialData: myEvents,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return Center(child: CustomWidgets.circularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {

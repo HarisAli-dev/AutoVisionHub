@@ -107,4 +107,13 @@ class CustomWidgets {
       color: AppColors.titleColor,
     );
   }
+
+  //circular progress indicator
+  static Widget circularProgressIndicator({double strokeWidth = 4.0, double? value}) {
+    return CircularProgressIndicator(
+      value: value,
+        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+        strokeWidth: strokeWidth,
+    );
+  }
 }

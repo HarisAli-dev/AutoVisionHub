@@ -218,7 +218,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 showDialog(
                   context: screenContext,
                   barrierDismissible: false,
-                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                  builder: (_) => Center(child: CustomWidgets.circularProgressIndicator()),
                 );
 
                 final result = await UnbanRequestController.createUnbanRequest(
@@ -331,7 +331,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 SizedBox(height: screenHeight * 0.04),
                 _isLoading
-                    ? Center(child: CircularProgressIndicator())
+                    ? Center(child: CustomWidgets.circularProgressIndicator())
                     : ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:front/model/payment_profile_model.dart';
 import 'package:front/services/payment_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 
@@ -204,10 +205,21 @@ class _EditPaymentProfileScreenState extends State<EditPaymentProfileScreen>
         ),
         backgroundColor: AppColors.appBarColor,
         bottom: TabBar(
+          indicatorColor: AppColors.primary,
+          labelColor: AppColors.foregroundColor,
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Settings', icon: Icon(Icons.settings)),
-            Tab(text: 'Payout Methods', icon: Icon(Icons.account_balance)),
+          tabs: [
+            Tab(
+              text: 'Settings',
+              icon: Icon(Icons.settings, color: AppColors.foregroundColor),
+            ),
+            Tab(
+              text: 'Payout Methods',
+              icon: Icon(
+                Icons.account_balance,
+                color: AppColors.foregroundColor,
+              ),
+            ),
           ],
         ),
       ),
@@ -331,14 +343,11 @@ class _EditPaymentProfileScreenState extends State<EditPaymentProfileScreen>
                   ),
                 ),
                 child: _isSavingSettings
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
+                        child: CustomWidgets.circularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
                         ),
                       )
                     : const Text('Save Settings'),
@@ -514,14 +523,11 @@ class _EditPaymentProfileScreenState extends State<EditPaymentProfileScreen>
                       child: ElevatedButton.icon(
                         onPressed: _isAddingBank ? null : _addBankAccount,
                         icon: _isAddingBank
-                            ? const SizedBox(
+                            ? SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(
+                                child: CustomWidgets.circularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
                                 ),
                               )
                             : const Icon(Icons.add),

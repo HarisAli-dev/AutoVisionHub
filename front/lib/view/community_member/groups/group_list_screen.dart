@@ -3,6 +3,7 @@ import 'package:front/controller/groups/group_controller.dart';
 import 'package:front/model/groups/group_model.dart';
 import 'package:front/model/groups/group_message_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
@@ -407,7 +408,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
         Expanded(
           child: isLoading
               ? Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child: CustomWidgets.circularProgressIndicator(),
                 )
               : filteredGroups.isEmpty
               ? Center(

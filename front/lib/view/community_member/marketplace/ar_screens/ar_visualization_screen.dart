@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:front/config/app_config.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:front/model/marketplace/listing_model.dart';
 import 'package:front/utils/app_colors.dart';
@@ -238,9 +239,8 @@ class _ARVisualizationScreenState extends State<ARVisualizationScreen> {
                   ? SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(
+                      child: CustomWidgets.circularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
                       ),
                     )
                   : Icon(Icons.auto_fix_high),

@@ -181,10 +181,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
+                  child: CustomWidgets.circularProgressIndicator(strokeWidth: 2.0)
                 ),
               ),
             )
@@ -343,7 +340,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           Expanded(
             child: isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CustomWidgets.circularProgressIndicator(),
                   )
                 : filteredUsers.isEmpty
                 ? Center(

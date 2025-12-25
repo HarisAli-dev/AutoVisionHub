@@ -89,7 +89,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   child: Stack(
                     children: [
                       _isLoading
-                          ? CircularProgressIndicator()
+                          ? CustomWidgets.circularProgressIndicator()
                           : CircleAvatar(
                               radius: screenWidth * 0.15,
                               backgroundColor: AppColors.disabledInputFillColor,

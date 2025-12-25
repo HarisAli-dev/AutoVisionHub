@@ -3,6 +3,7 @@ import 'package:front/controller/report_controller.dart';
 import 'package:front/controller/unban_request_controller.dart';
 import 'package:front/model/report_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/time_utils.dart';
@@ -103,7 +104,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : TabBarView(
               controller: _tabController,
               children: [
@@ -696,7 +697,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final result = await ReportController.handleUserReport(
@@ -779,7 +780,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final result = await ReportController.handleListItemReport(
@@ -887,9 +888,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
         context: context,
         barrierDismissible: false,
         builder: (context) => Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-          ),
+          child: CustomWidgets.circularProgressIndicator()
         ),
       );
 
@@ -1369,7 +1368,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
                                   width: 100,
                                   height: 100,
                                   color: AppColors.shadeColor.withOpacity(0.2),
-                                  child: Center(child: CircularProgressIndicator()),
+                                  child: Center(child: CustomWidgets.circularProgressIndicator()),
                                 ),
                               ),
                             );
@@ -1526,7 +1525,7 @@ class _ViewReportsScreenState extends State<ViewReportsScreen>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final result = await UnbanRequestController.reviewUnbanRequest(

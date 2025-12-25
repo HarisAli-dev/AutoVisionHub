@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:front/model/transaction_model.dart';
 import 'package:front/services/payment_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/time_utils.dart';
@@ -173,7 +174,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         ],
       ),
       body: _isLoading && _transactions.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : _transactions.isEmpty
           ? _buildEmptyState()
           : _buildTransactionList(),

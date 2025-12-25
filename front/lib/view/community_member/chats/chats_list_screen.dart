@@ -1,6 +1,7 @@
 import 'package:front/controller/chats/chat_controller.dart';
 import 'package:front/model/chats/chat_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/community_member/chats/chat_screen.dart';
@@ -50,7 +51,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+              child: CustomWidgets.circularProgressIndicator(),
             );
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

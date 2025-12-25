@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:front/controller/users/user_controller.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 
@@ -43,13 +44,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         );
 
         if (response) {
-          CustomSnackbars.showSuccessSnackbar(context, 'Password changed successfully', 1);
+          CustomSnackbars.showSuccessSnackbar(
+            context,
+            'Password changed successfully',
+            1,
+          );
           Navigator.pop(context);
         } else {
-          CustomSnackbars.showErrorSnackbar(context,  'Error changing password');
+          CustomSnackbars.showErrorSnackbar(context, 'Error changing password');
         }
       } catch (e) {
-        CustomSnackbars.showErrorSnackbar(context, 'An error occurred. Please try again.');
+        CustomSnackbars.showErrorSnackbar(
+          context,
+          'An error occurred. Please try again.',
+        );
       } finally {
         setState(() {
           _isLoading = false;
@@ -78,10 +86,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
+              CustomWidgets.customTextFormField(
                 controller: _currentPasswordController,
-                decoration: InputDecoration(labelText: 'Current Password'),
+                label: 'Current Password',
                 obscureText: true,
+                borderColor: AppColors.textFieldBorder,
+                textColor: AppColors.foregroundColor,
+                fontsize: AppSizes.inputFontSize(context),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your current password';
@@ -90,10 +101,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 },
               ),
               SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
-              TextFormField(
+              CustomWidgets.customTextFormField(
                 controller: _newPasswordController,
-                decoration: InputDecoration(labelText: 'New Password'),
+                label: 'New Password',
                 obscureText: true,
+                borderColor: AppColors.textFieldBorder,
+                textColor: AppColors.foregroundColor,
+                fontsize: AppSizes.inputFontSize(context),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a new password';
@@ -105,10 +119,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 },
               ),
               SizedBox(height: AppSizes.getScreenHeight(context) * 0.02),
-              TextFormField(
+              CustomWidgets.customTextFormField(
                 controller: _confirmPasswordController,
-                decoration: InputDecoration(labelText: 'Confirm New Password'),
+                label: 'Confirm New Password',
                 obscureText: true,
+                borderColor: AppColors.textFieldBorder,
+                textColor: AppColors.foregroundColor,
+                fontsize: AppSizes.inputFontSize(context),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please confirm your new password';
@@ -122,9 +139,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               SizedBox(height: AppSizes.getScreenHeight(context) * 0.05),
               ElevatedButton(
                 onPressed: _isLoading ? null : _changePassword,
+                style: CustomWidgets.elevatedButtonStyle(context),
                 child: _isLoading
-                    ? CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ? CustomWidgets.circularProgressIndicator(
                       )
                     : Text('Change Password'),
               ),

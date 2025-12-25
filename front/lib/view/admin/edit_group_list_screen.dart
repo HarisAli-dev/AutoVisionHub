@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:front/controller/groups/group_controller.dart';
 import 'package:front/model/groups/group_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/admin/edit_group_screen.dart';
@@ -110,7 +111,7 @@ class _EditGroupListScreenState extends State<EditGroupListScreen> {
       body: Padding(
         padding: EdgeInsets.all(screenWidth * 0.04),
         child: isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? Center(child: CustomWidgets.circularProgressIndicator())
             : groups.isEmpty
             ? Center(
                 child: Column(

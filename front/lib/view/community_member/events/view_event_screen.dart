@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:front/model/events/event_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/view/community_member/events/seat_booking_screen.dart';
 import 'package:front/view/community_member/events/ticket_booking_screen.dart';
@@ -117,12 +118,11 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Center(
-                        child: CircularProgressIndicator(
+                        child: CustomWidgets.circularProgressIndicator(
                           value: loadingProgress.expectedTotalBytes != null
                               ? loadingProgress.cumulativeBytesLoaded /
                                     loadingProgress.expectedTotalBytes!
                               : null,
-                          color: Colors.white,
                         ),
                       );
                     },

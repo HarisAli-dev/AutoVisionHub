@@ -4,6 +4,7 @@ import 'package:front/services/live_stream_service.dart';
 import 'package:front/services/video_player_service.dart';
 import 'package:front/services/socket_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/time_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -401,7 +402,7 @@ class _ViewerLiveStreamScreenState extends State<ViewerLiveStreamScreen>
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -455,7 +456,7 @@ class _ViewerLiveStreamScreenState extends State<ViewerLiveStreamScreen>
                   placeholder: (context, url) => Container(
                     height: 200,
                     color: Colors.grey[300],
-                    child: const Center(child: CircularProgressIndicator()),
+                    child: Center(child: CustomWidgets.circularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
                     height: 200,

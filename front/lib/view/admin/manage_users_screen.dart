@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:front/controller/users/user_controller.dart';
 import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 
@@ -182,7 +183,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         backgroundColor: AppColors.appBarColor,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : users.isEmpty
           ? const Center(
               child: Text(

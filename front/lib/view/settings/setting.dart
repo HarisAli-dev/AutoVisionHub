@@ -5,6 +5,7 @@ import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/app_colors.dart';
 
 import 'package:flutter/material.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/view/settings/change_password.dart';
 import 'package:front/view/settings/update_profile_screen.dart';
 import 'package:front/view/settings/customer_support_screen.dart';
@@ -90,7 +91,7 @@ class SettingsScreen extends StatelessWidget {
                     return AlertDialog(
                       content: Row(
                         children: [
-                          CircularProgressIndicator(),
+                          CustomWidgets.circularProgressIndicator(),
                           SizedBox(width: 20),
                           Text('Logging out...'),
                         ],

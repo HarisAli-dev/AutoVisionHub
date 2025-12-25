@@ -7,6 +7,7 @@ import 'package:front/model/groups/group_model.dart';
 import 'package:front/services/cloudinary_service.dart';
 import 'package:front/services/unified_audio_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/group_chat_components.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/sizes.dart';
@@ -889,7 +890,7 @@ class _GroupScreenState extends State<GroupScreen> {
                   ? CachedNetworkImage(
                       imageUrl: widget.groupImage,
                       placeholder: (context, url) =>
-                          CircularProgressIndicator(),
+                          CustomWidgets.circularProgressIndicator(),
                       errorWidget: (context, url, error) => Icon(Icons.error),
                     )
                   : Icon(
@@ -924,7 +925,7 @@ class _GroupScreenState extends State<GroupScreen> {
           Expanded(
             child: isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CustomWidgets.circularProgressIndicator(),
                   )
                 : messages.isEmpty
                 ? Center(

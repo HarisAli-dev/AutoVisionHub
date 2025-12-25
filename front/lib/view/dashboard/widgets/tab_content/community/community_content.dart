@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/view/dashboard/widgets/shared/hover_card.dart';
 import 'package:front/view/dashboard/widgets/shared/section_header.dart';
@@ -91,12 +92,11 @@ class CommunityContent extends StatelessWidget {
                   height: 140,
                   color: AppColors.shadeColor.withOpacity(0.2),
                   child: Center(
-                    child: CircularProgressIndicator(
+                    child: CustomWidgets.circularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
                           ? loadingProgress.cumulativeBytesLoaded /
                               loadingProgress.expectedTotalBytes!
                           : null,
-                      color: AppColors.primary,
                     ),
                   ),
                 );

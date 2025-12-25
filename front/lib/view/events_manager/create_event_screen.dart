@@ -384,12 +384,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
+                            child: CustomWidgets.circularProgressIndicator(strokeWidth: 2.0),
                           ),
                         ],
                       )

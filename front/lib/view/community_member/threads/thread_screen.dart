@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:front/controller/groups/thread_message_controller.dart';
 import 'package:front/model/groups/thread_message_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/time_utils.dart';
@@ -199,7 +200,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
           // Messages list
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CustomWidgets.circularProgressIndicator())
                 : _messages.isEmpty
                 ? Center(
                     child: Text(
@@ -277,7 +278,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                 ),
                 SizedBox(width: AppSizes.smallSpacing(context)),
                 _isSending
-                    ? const CircularProgressIndicator()
+                    ? Center(child: CustomWidgets.circularProgressIndicator())
                     : IconButton(
                         onPressed: _sendMessage,
                         icon: Icon(Icons.send, color: AppColors.primary),

@@ -3,6 +3,7 @@ import 'package:front/controller/events/event_controller.dart';
 import 'package:front/model/events/event_model.dart';
 import 'package:front/model/events/seats_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/time_utils.dart';
 import 'package:front/view/community_member/events/view_event_screen.dart';
@@ -50,7 +51,7 @@ class _EventListScreenState extends State<EventListScreen> {
           initialData: events,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
+              return Center(child: CustomWidgets.circularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else {

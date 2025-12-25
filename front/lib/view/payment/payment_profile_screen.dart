@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:front/model/payment_profile_model.dart';
 import 'package:front/services/payment_service.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/view/payment/edit_payment_profile_screen.dart';
+import 'package:front/view/payment/transaction_history_screen.dart';
 
 /// Payment Profile Screen for managing payment settings
 class PaymentProfileScreen extends StatefulWidget {
@@ -169,15 +172,20 @@ class _PaymentProfileScreenState extends State<PaymentProfileScreen> {
   }
 
   void _navigateToEditProfile() {
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      '/edit-payment-profile',
-      arguments: {'paymentProfile': _paymentProfile},
+      MaterialPageRoute(
+        builder: (context) =>
+            EditPaymentProfileScreen(paymentProfile: _paymentProfile),
+      ),
     ).then((_) => _loadPaymentProfile());
   }
 
   void _navigateToTransactionHistory() {
-    Navigator.pushNamed(context, '/transaction-history');
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TransactionHistoryScreen()),
+    );
   }
 
   @override
@@ -210,7 +218,7 @@ class _PaymentProfileScreenState extends State<PaymentProfileScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CustomWidgets.circularProgressIndicator())
           : _hasProfile
           ? _buildProfileView()
           : _buildCreateProfileView(),
@@ -450,8 +458,11 @@ class _PaymentProfileScreenState extends State<PaymentProfileScreen> {
                 ),
                 TextButton.icon(
                   onPressed: _navigateToEditProfile,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+                  icon: const Icon(Icons.add, color: AppColors.primary),
+                  label: const Text(
+                    'Add',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                 ),
               ],
             ),
@@ -546,7 +557,10 @@ class _PaymentProfileScreenState extends State<PaymentProfileScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _navigateToEditProfile,
-                child: const Text('Edit Settings'),
+                child: const Text(
+                  'Edit Settings',
+                  style: TextStyle(color: AppColors.primary),
+                ),
               ),
             ),
           ],

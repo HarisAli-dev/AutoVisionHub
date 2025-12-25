@@ -196,7 +196,7 @@ class _BidScreenState extends State<BidScreen> {
                 child: Consumer<MarketplaceController>(
                   builder: (context, controller, child) {
                     return controller.isLoading
-                        ? CircularProgressIndicator(color: AppColors.titleColor)
+                        ? CustomWidgets.circularProgressIndicator()
                         : Text(
                             'Place Bid',
                             style: TextStyle(

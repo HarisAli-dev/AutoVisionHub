@@ -4,6 +4,7 @@ import 'package:front/services/socket_service.dart';
 import 'package:front/services/gemini_chatbot_service.dart';
 import 'package:front/model/events/event_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/config/app_config.dart';
@@ -584,7 +585,7 @@ class _LiveStreamChatWidgetState extends State<LiveStreamChatWidget> {
                 ? SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CustomWidgets.circularProgressIndicator(strokeWidth: 3.0),
                   )
                 : Icon(Icons.send, color: AppColors.primary),
             onPressed: _isSendingMessage ? null : _sendMessage,

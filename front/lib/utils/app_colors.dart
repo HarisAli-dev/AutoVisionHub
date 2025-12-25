@@ -27,6 +27,7 @@ class AppColors {
   static Color titleColor = Colors.black87;
 
   static const Color gridLineColor = Colors.grey;
+  static const Color textFieldBorder = Colors.grey;
   static const Color seatEmptyColor = Color(0xFF4CAF50);
   static const Color seatBookedColor = Color(0xFFFFB300);
   static const Color seatReservedColor = Color(0xFFEF5350);

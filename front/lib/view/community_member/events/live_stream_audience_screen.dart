@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:front/services/socket_service.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:zego_express_engine/zego_express_engine.dart' as ZEGO;
 import 'package:zego_express_engine/zego_express_engine.dart'
     show ZegoCanvas, ZegoBarrageMessageInfo, ZegoRoomState;
@@ -355,7 +356,7 @@ class _LiveStreamAudienceScreenState extends State<LiveStreamAudienceScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: AppColors.primary),
+                    CustomWidgets.circularProgressIndicator(),
                     const SizedBox(height: 16),
                     const Text(
                       'Waiting for stream...',

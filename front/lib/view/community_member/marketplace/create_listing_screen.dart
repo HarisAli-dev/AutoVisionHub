@@ -554,9 +554,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   child: Consumer<MarketplaceController>(
                     builder: (context, controller, child) {
                       return controller.isLoading
-                          ? CircularProgressIndicator(
-                              color: AppColors.titleColor,
-                            )
+                          ? CustomWidgets.circularProgressIndicator()
                           : Text(
                               'Create Listing',
                               style: TextStyle(
@@ -841,7 +839,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: AppColors.primary),
+              CustomWidgets.circularProgressIndicator(),
               const SizedBox(height: 16),
               Text(
                 'Uploading images and creating listing...',

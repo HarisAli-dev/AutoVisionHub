@@ -244,9 +244,7 @@ class _SeatBookingScreenState extends State<SeatBookingScreen> {
                     onPressed: seatProvider.isLoading ? null : _bookSeats,
                     style: CustomWidgets.elevatedButtonStyle(context),
                     child: seatProvider.isLoading
-                        ? CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                        ? CustomWidgets.circularProgressIndicator(
                           )
                         : Text(
                             'Book ${seatProvider.selectedSeatsCount} Seat${seatProvider.selectedSeatsCount > 1 ? 's' : ''}',

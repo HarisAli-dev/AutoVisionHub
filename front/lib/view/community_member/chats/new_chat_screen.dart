@@ -3,6 +3,7 @@ import 'package:front/controller/chats/chat_controller.dart';
 import 'package:front/controller/users/user_controller.dart';
 import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/view/community_member/chats/chat_screen.dart';
 import 'package:flutter/material.dart';
@@ -114,7 +115,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           Expanded(
             child: _isLoading
                 ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+                    child: CustomWidgets.circularProgressIndicator(),
                   )
                 : _filteredUsers.isEmpty
                 ? Center(

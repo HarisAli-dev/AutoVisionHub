@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:front/controller/groups/thread_controller.dart';
 import 'package:front/model/groups/thread_model.dart';
 import 'package:front/utils/app_colors.dart';
+import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
@@ -77,7 +78,7 @@ class _ThreadsListScreenState extends State<ThreadsListScreen>
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => Center(child: CustomWidgets.circularProgressIndicator()),
       );
 
       final result = await ThreadController.deleteThread(thread.id);
@@ -119,7 +120,7 @@ class _ThreadsListScreenState extends State<ThreadsListScreen>
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CustomWidgets.circularProgressIndicator())
                 : TabBarView(
                     controller: _tabController,
                     children: [
