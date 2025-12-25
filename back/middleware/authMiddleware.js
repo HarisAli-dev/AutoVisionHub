@@ -33,6 +33,30 @@ exports.protect = async (req, res, next) => {
   }
 };
 
+// Optional auth middleware - doesn't fail if no token, but attaches user if token is valid
+exports.optionalAuth = async (req, res, next) => {
+  let token;
+
+  // Check for token in Authorization header
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(' ')[1];
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET);
+
+      // Get user from token and attach to request object
+      req.user = await User.findById(decoded.id).select('-password');
+      // If user not found, just continue without req.user
+    } catch (error) {
+      // Token is invalid or expired, but continue without req.user
+      req.user = null;
+    }
+  }
+  
+  next();
+};
+
 // Admin middleware
 exports.admin = (req, res, next) => {
   if (req.user && (req.user.isAdmin || req.user.role === 'admin')) {

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:front/model/events/event_model.dart';
-import 'package:front/model/events/booking_model.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
-import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
+import 'package:front/controller/events/booking_controller.dart';
+import 'package:front/services/event_reminder_service.dart';
+import 'package:intl_mobile_field/intl_mobile_field.dart';
 
 class TicketBookingScreen extends StatefulWidget {
   final EventModel event;
@@ -38,7 +39,7 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
 
   void _calculateTotalPrice() {
     _totalPrice = widget.event.ticketPrice * _selectedTickets;
-    _priceController.text = '\$${_totalPrice.toStringAsFixed(2)}';
+    _priceController.text = 'RS ${_totalPrice.toStringAsFixed(2)}';
   }
 
   @override
@@ -148,9 +149,7 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
                 ),
                 SizedBox(width: AppSizes.smallPadding(context)),
                 Text(
-                  DateFormat(
-                    'MMM dd, yyyy - hh:mm a',
-                  ).format(widget.event.eventDateTime),
+                  TimeUtils.formatToPKT(widget.event.eventDateTime, 'MMM dd, yyyy - hh:mm a'),
                   style: TextStyle(
                     fontSize: AppSizes.bodyFontSize(context),
                     color: AppColors.shadeColor,
@@ -275,19 +274,38 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
             ),
 
             // Custom Phone Number Field
-            CustomWidgets.customTextFormField(
+            IntlMobileField(
               controller: _phoneController,
-              label: 'Phone Number *',
-              borderColor: AppColors.foregroundColor,
-              textColor: AppColors.titleColor,
-              fontsize: AppSizes.inputFontSize(context),
-              isnumber: true,
+              decoration: InputDecoration(
+                labelText: 'Phone Number *',
+                labelStyle: TextStyle(color: AppColors.titleColor),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.foregroundColor),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.foregroundColor),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: AppColors.foregroundColor,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              style: TextStyle(
+                color: AppColors.titleColor,
+                fontSize: AppSizes.inputFontSize(context),
+              ),
+              dropdownTextStyle: TextStyle(color: AppColors.titleColor),
+              initialCountryCode: 'PK',
+              disableLengthCheck: false,
+              autovalidateMode: AutovalidateMode.disabled,
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
+                if (value == null || value.completeNumber.isEmpty) {
                   return 'Please enter your phone number';
-                }
-                if (value.trim().length < 10) {
-                  return 'Please enter a valid phone number';
                 }
                 return null;
               },
@@ -403,7 +421,7 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
         child: _isLoading
             ? CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
             : Text(
-                'Book $_selectedTickets Ticket${_selectedTickets > 1 ? 's' : ''} - \$${_totalPrice.toStringAsFixed(2)}',
+                'Book $_selectedTickets Ticket${_selectedTickets > 1 ? 's' : ''} - RS ${_totalPrice.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: AppSizes.subtitleFontSize(context),
                   fontWeight: FontWeight.bold,
@@ -424,43 +442,36 @@ class _TicketBookingScreenState extends State<TicketBookingScreen> {
 
     try {
       // Create booking model
-      final booking = BookingModel(
-        userId: HiveUtils.getData('userId'),
-        userName: _nameController.text.trim(),
-        userEmail: _emailController.text.trim(),
-        userPhoneNumber: _phoneController.text.trim(),
-        eventId: widget.event.id,
-        bookingType: widget.event.bookingType,
-        bookingDate: DateTime.now(),
-        ticketOrSeatNumber: _selectedTickets,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+      final success = await BookingController.bookTickets(
+        widget.event.id!,
+        _selectedTickets,
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _phoneController.text.trim(),
       );
 
-      // TODO: Implement booking API call
-      // await BookingController.createBooking(booking);
-      print('Booking created: ${booking.toJson()}');
-
-      // Simulate API call
-      await Future.delayed(Duration(seconds: 2));
-
-      if (mounted) {
+      if (success && mounted) {
+        await EventReminderService.scheduleEventReminders(
+          event: widget.event,
+          bookingSummary: 'Tickets $_selectedTickets reserved.',
+        );
         CustomSnackbars.showSuccessSnackbar(
           context,
           'Tickets booked successfully! You will receive a confirmation email shortly.',
           3.0,
         );
-        Navigator.pop(
+        Navigator.pop(context, true);
+      } else if (mounted) {
+        CustomSnackbars.showErrorSnackbar(
           context,
-          true,
-        ); // Return true to indicate successful booking
+          'Failed to book tickets. Please try again later.',
+        );
       }
     } catch (e) {
       if (mounted) {
         CustomSnackbars.showErrorSnackbar(
           context,
           'Failed to book tickets. Please try again later.',
-   
         );
       }
     } finally {

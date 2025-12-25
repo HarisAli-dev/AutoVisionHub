@@ -26,7 +26,7 @@ const liveStreamService = {
   // Get live stream by room ID
   getLiveStreamByRoomId: async (roomId) => {
     try {
-      return await LiveStream.findByRoomId(roomId);
+      return await LiveStream.findOne({ roomId });
     } catch (error) {
       console.error('Error getting live stream by room ID:', error);
       throw error;

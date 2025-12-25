@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:front/config/app_config.dart';
 import 'package:front/utils/hive_utils.dart';
+import 'package:front/utils/snackbars.dart';
 import 'package:front/model/events/event_model.dart';
 import 'package:front/services/socket_service.dart';
-import 'package:zego_uikit_prebuilt_live_streaming/zego_uikit_prebuilt_live_streaming.dart';
+import 'package:front/services/video_player_service.dart';
+import 'package:front/view/community_member/events/live_stream_host_screen.dart';
+import 'package:front/view/community_member/events/live_stream_audience_screen.dart';
 
 /// Service class for managing live streaming functionality with backend integration
 class LiveStreamService {
@@ -229,51 +232,26 @@ class LiveStreamService {
       return;
     }
 
-    final userId = HiveUtils.getData('userId') ?? 'default_user';
-    final userName = HiveUtils.getData('name') ?? 'Host';
-
     // Notify recording started via socket
     final socketService = SocketService();
     socketService.notifyRecordingStarted(roomId);
 
-    // Configure Zego with proper cleanup
-    final config = ZegoUIKitPrebuiltLiveStreamingConfig.host();
-
-    // Navigate to Zego live streaming
+    // Navigate to SDK-based host screen
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ZegoUIKitPrebuiltLiveStreaming(
-          appID: AppConfig.zegoAppId,
-          appSign: AppConfig.zegoAppSign,
-          userID: userId,
-          userName: userName,
-          liveID: roomId,
-          config: config,
+        builder: (context) => LiveStreamHostScreen(
+          roomId: roomId,
+          event: event,
+          onStreamEnded: onLiveStreamingEnded,
         ),
       ),
     );
 
-    // When the host returns from live streaming, stop the stream in backend
-    debugPrint('Host live streaming ended');
-
-    // Cleanup Zego resources
-    await _cleanupZegoResources();
-
     // Notify recording stopped via socket
     socketService.notifyRecordingStopped(roomId);
 
-    try {
-      await stopLiveStream(roomId);
-      debugPrint('Successfully stopped live stream in backend');
-    } catch (e) {
-      debugPrint('Error stopping live stream in backend: $e');
-    }
-
-    // Call the callback
-    if (onLiveStreamingEnded != null) {
-      onLiveStreamingEnded();
-    }
+    debugPrint('Host live streaming ended');
   }
 
   /// Navigate to audience live streaming page
@@ -287,90 +265,22 @@ class LiveStreamService {
       return;
     }
 
-    final userId = HiveUtils.getData('userId') ?? 'default_user';
-    final userName = HiveUtils.getData('name') ?? 'Viewer';
-
-    // Start periodic stream status checking (less frequent, as backup only)
-    Timer? statusCheckTimer;
-    bool streamEnded = false;
-
-    // Use the event ID for status checking instead of roomId, and check less frequently
-    statusCheckTimer = Timer.periodic(const Duration(seconds: 15), (
-      timer,
-    ) async {
-      try {
-        final status = await getLiveStreamStatus(event.id!);
-        if (status == null || status['isActive'] != true) {
-          debugPrint('Stream is no longer active, ending viewer session');
-          streamEnded = true;
-          timer.cancel();
-          // Pop the Zego interface if still active
-          if (Navigator.canPop(context)) {
-            Navigator.of(context).pop();
-          }
-        }
-      } catch (e) {
-        debugPrint('Error checking stream status: $e');
-        // Don't end stream on API errors, rely on socket events
-      }
-    });
-
-    // Navigate to Zego live streaming as audience
+    // Navigate to SDK-based audience screen
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ZegoUIKitPrebuiltLiveStreaming(
-          appID: AppConfig.zegoAppId,
-          appSign: AppConfig.zegoAppSign,
-          userID: userId,
-          userName: userName,
-          liveID: roomId,
-          config: ZegoUIKitPrebuiltLiveStreamingConfig.audience(),
-        ),
+        builder: (context) =>
+            LiveStreamAudienceScreen(roomId: roomId, event: event),
       ),
     );
-
-    // Cancel the timer when returning from Zego interface
-    statusCheckTimer.cancel();
-
-    // Cleanup Zego resources
-    await _cleanupZegoResources();
 
     // When audience returns from live streaming, leave the stream in backend
     debugPrint('Audience left live streaming');
     try {
       await leaveLiveStream(roomId);
       debugPrint('Successfully left live stream in backend');
-
-      // If stream ended while in Zego, show notification
-      if (streamEnded) {
-        // Show a snackbar or dialog indicating stream ended
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('The live stream has ended'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      }
     } catch (e) {
       debugPrint('Error leaving live stream in backend: $e');
-    }
-  }
-
-  /// Cleanup Zego resources to prevent memory leaks and spamming logs
-  static Future<void> _cleanupZegoResources() async {
-    try {
-      // Clear any pending network calls and cleanup resources
-      debugPrint('Cleaning up Zego resources...');
-
-      // Add a small delay to ensure Zego cleanup is complete
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      debugPrint('Zego cleanup completed');
-    } catch (e) {
-      debugPrint('Error during Zego cleanup: $e');
     }
   }
 
@@ -435,4 +345,74 @@ class LiveStreamService {
     }
   }
   */
+
+  /// Upload recording
+  static Future<bool> uploadRecording(String roomId, String filePath) async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse(
+          '${AppConfig.apiBaseUrl}/livestream/recording/upload/$roomId',
+        ),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('video', filePath));
+
+      final response = await request.send();
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error uploading recording: $e');
+      return false;
+    }
+  }
+
+  /// Get recording URL
+  static Future<Map<String, dynamic>?> getRecording(String roomId) async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/livestream/recording/$roomId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting recording: $e');
+      return null;
+    }
+  }
+
+  /// Play recording using video player dialog
+  static Future<void> playRecording(BuildContext context, String roomId) async {
+    try {
+      final recording = await getRecording(roomId);
+      if (recording == null || recording['recordingUrl'] == null) {
+        CustomSnackbars.showErrorSnackbar(context, 'Recording not available');
+        return;
+      }
+
+      await VideoPlayerService.showVideoPlayerDialog(
+        context,
+        videoUrl: recording['recordingUrl'],
+        autoPlay: true,
+      );
+    } catch (e) {
+      debugPrint('Error playing recording: $e');
+      CustomSnackbars.showErrorSnackbar(context, 'Failed to play recording');
+    }
+  }
 }

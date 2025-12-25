@@ -1,11 +1,11 @@
 const Listing = require('../../models/marketplace/listingModel');
 const Favorite = require('../../models/marketplace/favoriteModel');
 const Bid = require('../../models/marketplace/bidModel');
-const Offer = require('../../models/marketplace/offerModel');
 const MarketplaceChat = require('../../models/marketplace/marketplaceChatModel');
 const User = require('../../models/users/userModel');
 const mongoose = require('mongoose');
 const cloudinary = require('../../config/cloudinary');
+const popularityService = require('../../services/popularityService');
 
 // Helper function to extract publicId from Cloudinary URL
 const extractPublicId = (url) => {
@@ -51,8 +51,6 @@ exports.createListing = async (req, res) => {
       auctionEndTime,
       startingBid,
       bidIncrement,
-      isNegotiable,
-      minimumOffer,
       quantity
     } = req.body;
 
@@ -97,9 +95,7 @@ exports.createListing = async (req, res) => {
       auctionEndTime: isAuction ? new Date(auctionEndTime) : undefined,
       startingBid: isAuction ? startingBid : undefined,
       currentBid: isAuction ? startingBid : undefined,
-      bidIncrement: isAuction ? (bidIncrement || 1000) : undefined,
-      isNegotiable,
-      minimumOffer
+      bidIncrement: isAuction ? (bidIncrement || 1000) : undefined
     };
 
     const newListing = new Listing(listingData);
@@ -141,8 +137,7 @@ exports.getAllListings = async (req, res) => {
       search,
       sortBy = 'createdAt',
       sortOrder = 'desc',
-      isAuction,
-      isNegotiable
+      isAuction
     } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -160,30 +155,54 @@ exports.getAllListings = async (req, res) => {
     if (condition) query.condition = condition;
     if (location) query['location.city'] = new RegExp(location, 'i');
     if (isAuction !== undefined) query.isAuction = isAuction === 'true';
-    if (isNegotiable !== undefined) query.isNegotiable = isNegotiable === 'true';
 
     // Text search
     if (search) {
       query.$text = { $search: search };
     }
 
-    // Sort options
-    const sortOptions = {};
-    if (sortBy === 'price') {
-      sortOptions.price = sortOrder === 'asc' ? 1 : -1;
-    } else if (sortBy === 'createdAt') {
-      sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
-    } else if (sortBy === 'viewCount') {
-      sortOptions.viewCount = sortOrder === 'asc' ? 1 : -1;
+    // Handle popularity-based sorting separately as it requires aggregation
+    const isPopularitySort = sortBy === 'popularity';
+    
+    let listings;
+    let total = await Listing.countDocuments(query);
+    
+    if (isPopularitySort) {
+      // For popularity sorting, fetch all matching listings first
+      const allListings = await Listing.find(query)
+        .populate('seller', 'name email phoneNumber city profileImageUrl');
+      
+      // Enhance with popularity metrics and sort
+      const sortedListings = await popularityService.filterAndSortByPopularity(
+        allListings,
+        {
+          clickWeight: parseFloat(req.query.clickWeight) || 1.0,
+          visitorWeight: parseFloat(req.query.visitorWeight) || 2.0,
+          sortOrder: sortOrder || 'desc'
+        }
+      );
+      
+      // Apply pagination after sorting
+      listings = sortedListings.slice(skip, skip + parseInt(limit));
+    } else {
+      // Standard sorting
+      const sortOptions = {};
+      if (sortBy === 'price') {
+        sortOptions.price = sortOrder === 'asc' ? 1 : -1;
+      } else if (sortBy === 'createdAt') {
+        sortOptions.createdAt = sortOrder === 'asc' ? 1 : -1;
+      } else if (sortBy === 'viewCount') {
+        sortOptions.viewCount = sortOrder === 'asc' ? 1 : -1;
+      } else if (sortBy === 'clickCount') {
+        sortOptions.clickCount = sortOrder === 'asc' ? 1 : -1;
+      }
+
+      listings = await Listing.find(query)
+        .populate('seller', 'name email phoneNumber city profileImageUrl')
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(parseInt(limit));
     }
-
-    const listings = await Listing.find(query)
-      .populate('seller', 'name email phoneNumber city profileImageUrl')
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Listing.countDocuments(query);
 
     res.status(200).json({
       success: true,
@@ -212,6 +231,7 @@ exports.getAllListings = async (req, res) => {
 exports.getListingById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id; // User may or may not be authenticated
 
     const listing = await Listing.findById(id)
       .populate('seller', 'name email phoneNumber city profileImageUrl');
@@ -225,7 +245,43 @@ exports.getListingById = async (req, res) => {
 
     // Increment view count
     listing.viewCount += 1;
+    
+    // Increment click count when item is clicked
+    listing.clickCount += 1;
     await listing.save();
+
+    // If user is authenticated, add item to visitedItems and recentlyViewed
+    if (userId) {
+      const user = await User.findById(userId);
+      
+      // Add to visitedItems (prevents duplicates)
+      await User.findByIdAndUpdate(
+        userId,
+        { $addToSet: { visitedItems: id } },
+        { new: true }
+      );
+
+      // Add to recentlyViewed with timestamp
+      // Remove existing entry if present, then add to beginning
+      await User.findByIdAndUpdate(
+        userId,
+        { $pull: { recentlyViewed: { listing: id } } }
+      );
+      
+      await User.findByIdAndUpdate(
+        userId,
+        { 
+          $push: { 
+            recentlyViewed: { 
+              $each: [{ listing: id, viewedAt: new Date() }],
+              $position: 0,
+              $slice: 20 // Keep only last 20 viewed items
+            }
+          }
+        },
+        { new: true }
+      );
+    }
 
     // Get current highest bid if it's an auction
     let currentBid = null;
@@ -320,7 +376,7 @@ exports.updateListing = async (req, res) => {
       });
     }
 
-    // Don't allow updating certain fields if listing has bids or offers
+    // Don't allow updating certain fields if listing has bids
     if (listing.isAuction) {
       const hasBids = await Bid.exists({ listing: id });
       if (hasBids && (updateData.price || updateData.startingBid)) {
@@ -411,8 +467,6 @@ exports.deleteListing = async (req, res) => {
       Favorite.deleteMany({ listing: id }),
       // Delete related bids
       Bid.deleteMany({ listing: id }),
-      // Delete related offers
-      Offer.deleteMany({ listing: id }),
       // Delete related marketplace chats
       MarketplaceChat.deleteMany({ listing: id })
     ]);
@@ -531,3 +585,131 @@ exports.getFavoriteListings = async (req, res) => {
     });
   }
 };
+
+// Get user's recently viewed items
+exports.getRecentlyViewedItems = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 20 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get user with visitedItems
+    const user = await User.findById(userId).select('visitedItems');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get visited item IDs (reverse to show most recent first)
+    const visitedItemIds = (user.visitedItems || []).reverse();
+    const total = visitedItemIds.length;
+
+    // Apply pagination
+    const paginatedIds = visitedItemIds.slice(skip, skip + parseInt(limit));
+
+    if (paginatedIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          listings: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / parseInt(limit)),
+            totalItems: total,
+            itemsPerPage: parseInt(limit)
+          }
+        }
+      });
+    }
+
+    // Fetch listings with populated seller
+    const listings = await Listing.find({
+      _id: { $in: paginatedIds },
+      isActive: true,
+      status: 'active'
+    })
+      .populate('seller', 'name email phoneNumber city profileImageUrl')
+      .sort({ updatedAt: -1 }); // Sort by most recently updated
+
+    // Maintain order based on visitedItems array (most recent first)
+    const orderedListings = paginatedIds
+      .map(id => listings.find(listing => listing._id.toString() === id.toString()))
+      .filter(Boolean); // Remove undefined/null items
+
+    res.status(200).json({
+      success: true,
+      data: {
+        listings: orderedListings,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / parseInt(limit)),
+          totalItems: total,
+          itemsPerPage: parseInt(limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching recently viewed items:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Get user's recently viewed listings with timestamps
+exports.getRecentlyViewedListings = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { limit = 10 } = req.query;
+
+    const user = await User.findById(userId)
+      .populate({
+        path: 'recentlyViewed.listing',
+        match: { isActive: true },
+        populate: {
+          path: 'seller',
+          select: 'name email phoneNumber city profileImageUrl'
+        }
+      });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Filter out null listings (deleted or inactive) and apply limit
+    const recentlyViewed = user.recentlyViewed
+      .filter(item => item.listing)
+      .slice(0, parseInt(limit))
+      .map(item => ({
+        listing: item.listing,
+        viewedAt: item.viewedAt
+      }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        recentlyViewed,
+        count: recentlyViewed.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching recently viewed listings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+

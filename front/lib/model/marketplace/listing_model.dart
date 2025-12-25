@@ -22,6 +22,7 @@ class ListingModel {
   bool isFeatured;
   int viewCount;
   int favoriteCount;
+  int clickCount;
   bool isAuction;
   DateTime? auctionEndTime;
   double? startingBid;
@@ -60,6 +61,7 @@ class ListingModel {
     this.isFeatured = false,
     this.viewCount = 0,
     this.favoriteCount = 0,
+    this.clickCount = 0,
     this.isAuction = false,
     this.auctionEndTime,
     this.startingBid,
@@ -102,6 +104,7 @@ class ListingModel {
       isFeatured: json['isFeatured'] ?? false,
       viewCount: json['viewCount'] ?? 0,
       favoriteCount: json['favoriteCount'] ?? 0,
+      clickCount: json['clickCount'] ?? 0,
       isAuction: json['isAuction'] ?? false,
       auctionEndTime: json['auctionEndTime'] != null
           ? DateTime.parse(json['auctionEndTime'])
@@ -157,6 +160,7 @@ class ListingModel {
     'isFeatured': isFeatured,
     'viewCount': viewCount,
     'favoriteCount': favoriteCount,
+    'clickCount': clickCount,
     'isAuction': isAuction,
     'auctionEndTime': auctionEndTime?.toIso8601String(),
     'startingBid': startingBid,

@@ -46,6 +46,8 @@ dependencies:
   permission_handler: ^12.0.1
   video_player: ^2.10.0
   record: ^6.1.0
+  camera: ^0.10.5+9
+  gal: ^2.3.0
   path_provider: ^2.1.5
   dio: ^5.9.0
   open_file: ^3.5.10
@@ -54,7 +56,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   flutter_dotenv: ^5.1.0
   flutter_stripe:
-  zego_uikit_prebuilt_live_streaming:
+  zego_express_engine: ^3.14.5
+  intl_mobile_field: ^2.1.4
 
 dev_dependencies:
   flutter_test:

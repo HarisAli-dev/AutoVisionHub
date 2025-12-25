@@ -23,4 +23,8 @@ router.get('/search/:query', userController.searchUser);
 //get all users
 router.get('/all', userController.getAllUsers);
 
+// Admin only routes - Delete and Ban users
+router.delete('/delete/:userId', userController.deleteUser);
+router.put('/ban/:userId', userController.banUser);
+
 module.exports = router;

@@ -23,10 +23,31 @@ class FavoritesTab extends StatefulWidget {
 }
 
 class _FavoritesTabState extends State<FavoritesTab> {
+  bool _hasLoadedInitialData = false;
+
   @override
   void initState() {
     super.initState();
     widget.scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Trigger initial load if not already done
+    if (!_hasLoadedInitialData) {
+      _hasLoadedInitialData = true;
+      final controller = Provider.of<MarketplaceController>(
+        context,
+        listen: false,
+      );
+      // Only load if favorites are empty
+      if (controller.favoriteListings.isEmpty && !controller.isLoading) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onRefresh();
+        });
+      }
+    }
   }
 
   void _onScroll() {

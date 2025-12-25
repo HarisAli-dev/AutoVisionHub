@@ -41,6 +41,12 @@ exports.getUserGroups = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Check if user is banned
+    const user = await User.findById(userId);
+    if (user && user.isBanned) {
+      return res.status(403).json({ error: 'Your account has been banned from accessing groups' });
+    }
+
     const groups = await Group.find({
       participants: userId
     })
@@ -58,6 +64,14 @@ exports.getUserGroups = async (req, res) => {
 // Get all groups (where user is not a participant) 
 exports.getAllGroups = async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    // Check if user is banned
+    const user = await User.findById(userId);
+    if (user && user.isBanned) {
+      return res.status(403).json({ error: 'Your account has been banned from accessing groups' });
+    }
+
     const groups = await Group.find()
       .populate('participants', 'name email profileImageUrl')
       .populate('lastMessage')
@@ -75,6 +89,12 @@ exports.getGroupDetails = async (req, res) => {
   try {
     const { groupId } = req.params;
     const userId = req.user.id;
+
+    // Check if user is banned
+    const user = await User.findById(userId);
+    if (user && user.isBanned) {
+      return res.status(403).json({ error: 'Your account has been banned from accessing groups' });
+    }
 
     const group = await Group.findById(groupId)
       .populate('participants', 'name email profileImageUrl')
@@ -197,10 +217,16 @@ exports.addParticipants = async (req, res) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    // Validate that all new participants exist
+    // Validate that all new participants exist and are not banned
     const validUsers = await User.find({ _id: { $in: participants } });
     if (validUsers.length !== participants.length) {
       return res.status(400).json({ error: 'Some participants do not exist' });
+    }
+
+    // Check if any of the new participants are banned
+    const bannedUsers = validUsers.filter(user => user.isBanned);
+    if (bannedUsers.length > 0) {
+      return res.status(400).json({ error: 'Cannot add banned users to group' });
     }
 
     // Add new participants (avoid duplicates)

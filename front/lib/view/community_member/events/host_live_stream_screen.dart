@@ -5,7 +5,9 @@ import 'package:front/services/video_player_service.dart';
 import 'package:front/services/socket_service.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:front/view/community_member/events/widgets/live_stream_chat_widget.dart';
 
 /// Host Live Stream Screen for event creators to manage live streaming
 class HostLiveStreamScreen extends StatefulWidget {
@@ -521,6 +523,16 @@ class _HostLiveStreamScreenState extends State<HostLiveStreamScreen>
                   const SizedBox(height: 24),
                   _buildAdditionalFeatures(),
 
+                  // Live Stream Chat
+                  if (_isLiveStreamActive && _currentRoomId != null) ...[
+                    const SizedBox(height: 24),
+                    LiveStreamChatWidget(
+                      roomId: _currentRoomId!,
+                      event: widget.event,
+                      enableChatbot: true,
+                    ),
+                  ],
+
                   // TODO: Add chatbot interface
                   // const SizedBox(height: 24),
                   // _buildChatbotInterface(),
@@ -587,8 +599,7 @@ class _HostLiveStreamScreenState extends State<HostLiveStreamScreen>
                 Icon(Icons.access_time, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Text(
-                  '${widget.event.eventDateTime.day}/${widget.event.eventDateTime.month}/${widget.event.eventDateTime.year} '
-                  '${widget.event.eventDateTime.hour}:${widget.event.eventDateTime.minute.toString().padLeft(2, '0')}',
+                  TimeUtils.formatDateTimePKT(widget.event.eventDateTime),
                 ),
               ],
             ),

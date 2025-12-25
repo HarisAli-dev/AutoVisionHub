@@ -4,6 +4,7 @@ const http = require('http');
 const connectDB = require('./config/db');
 const socketConfig = require('./config/socket');
 const LiveStreamSocketHandler = require('./controllers/events/socketHandler');
+const eventCleanupService = require('./services/eventCleanupService');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +17,9 @@ const io = socketConfig.init(server);
 const liveStreamHandler = new LiveStreamSocketHandler(io);
 
 connectDB();
+
+// Start the event cleanup service
+eventCleanupService.start();
 
 app.use(cors({
     origin: '*', // Add your frontend URL
@@ -35,17 +39,24 @@ app.use('/api/chatMessage', require('./routes/chats/chatMessageRoutes'));
 app.use('/api/group', require('./routes/groups/groupRoutes'));
 app.use('/api/groupMessage', require('./routes/groups/groupMessageRoutes'));
 app.use('/api/poll', require('./routes/groups/pollRoutes'));
+app.use('/api/thread', require('./routes/groups/threadRoutes'));
 app.use('/api/event', require('./routes/events/eventRoutes'));
 app.use('/api/livestream', require('./routes/events/liveStreamRoutes'));
 app.use('/api/media', require('./routes/mediaRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));
+app.use('/api/report', require('./routes/reportRoutes'));
+app.use('/api/unban-request', require('./routes/unbanRequestRoutes'));
 
 // Marketplace routes
 app.use('/api/marketplace/listings', require('./routes/marketplace/listingRoutes'));
 app.use('/api/marketplace/bids', require('./routes/marketplace/bidRoutes'));
-app.use('/api/marketplace/offers', require('./routes/marketplace/offerRoutes'));
+app.use('/api/marketplace/reviews', require('./routes/marketplace/reviewRoutes'));
 app.use('/api/marketplace/chat', require('./routes/marketplace/chatRoutes'));
+
+// ZEGO routes
+app.use('/api/zego', require('./routes/zegoRoutes'));
+app.use('/api/zego', require('./routes/zegoChatbotRoutes'));
 
 
 app.get('/api/test', (req, res) => {
@@ -58,6 +69,11 @@ io.on('connection', (socket) => {
 
   // Setup live streaming event handlers
   liveStreamHandler.setupEventHandlers(socket);
+
+  // Add debug logging for all socket events
+  socket.onAny((event, ...args) => {
+    console.log(`🔍 SOCKET EVENT RECEIVED: ${event}`, args.length > 0 ? args[0] : '(no data)');
+  });
 
   // Join a room with userId for private messages
   socket.on('joinUserRoom', (userId) => {
@@ -77,6 +93,20 @@ io.on('connection', (socket) => {
     const { groupId } = data;
     socket.leave(groupId);
     console.log(`Socket ${socket.id} left group room: ${groupId}`);
+  });
+
+  // Join a thread room
+  socket.on('join_thread', (data) => {
+    const { threadId } = data;
+    socket.join(`thread_${threadId}`);
+    console.log(`Socket ${socket.id} joined thread room: thread_${threadId}`);
+  });
+
+  // Leave a thread room
+  socket.on('leave_thread', (data) => {
+    const { threadId } = data;
+    socket.leave(`thread_${threadId}`);
+    console.log(`Socket ${socket.id} left thread room: thread_${threadId}`);
   });
   
   // Join a chat room (for direct messages)
@@ -171,18 +201,18 @@ io.on('connection', (socket) => {
     });
   });
 
-  // TODO: Chatbot live stream events (for future implementation)
-  /*
+  // Chatbot live stream events
   socket.on('chatbot_message', (data) => {
     const { roomId, message, userId } = data;
-    // Send message to chatbot and broadcast response
+    console.log('Manual chatbot message received:', { roomId, message, userId });
+    // This is for manual chatbot triggers if needed
+    // The automatic chatbot is handled in socketHandler.js
     socket.to(roomId).emit('chatbot_response', {
       message,
       userId,
       timestamp: new Date()
     });
   });
-  */
 
   // Handle mark group as read
   socket.on('mark_group_read', (data) => {
@@ -248,5 +278,5 @@ io.on('connection', (socket) => {
 });
 const port = process.env.PORT || 8080;
 server.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on  ${port}`);
 });

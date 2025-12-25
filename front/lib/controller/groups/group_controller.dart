@@ -41,7 +41,11 @@ class GroupController {
           throw Exception('Unexpected response format');
         }
         debugPrint('Fetched groups: $data');
-        debugPrint('Fetched groups: ${data[0]}');
+        if (data.isNotEmpty) {
+          debugPrint('Fetched groups count: ${data.length}, first group: ${data[0]}');
+        } else {
+          debugPrint('No groups found');
+        }
 
         return data.map((group) => Group.fromJson(group)).toList();
       } else {

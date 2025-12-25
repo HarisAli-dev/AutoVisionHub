@@ -7,6 +7,8 @@ import 'package:front/utils/sizes.dart';
 import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:provider/provider.dart';
+import 'package:front/services/event_reminder_service.dart';
+import 'package:intl_mobile_field/intl_mobile_field.dart';
 
 class SeatBookingScreen extends StatefulWidget {
   final EventModel event;
@@ -195,15 +197,37 @@ class _SeatBookingScreenState extends State<SeatBookingScreen> {
                   },
                 ),
 
-                CustomWidgets.customTextFormField(
+                IntlMobileField(
                   controller: _phoneController,
-                  label: 'Phone Number *',
-                  borderColor: AppColors.foregroundColor,
-                  textColor: AppColors.titleColor,
-                  fontsize: AppSizes.inputFontSize(context),
-                  isnumber: true,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number *',
+                    labelStyle: TextStyle(color: AppColors.titleColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.foregroundColor),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.foregroundColor),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: AppColors.foregroundColor,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: AppColors.titleColor,
+                    fontSize: AppSizes.inputFontSize(context),
+                  ),
+                  dropdownTextStyle: TextStyle(color: AppColors.titleColor),
+                  initialCountryCode: 'PK',
+                  disableLengthCheck: false,
+                  autovalidateMode: AutovalidateMode.disabled,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null || value.completeNumber.isEmpty) {
                       return 'Please enter your phone number';
                     }
                     return null;
@@ -245,6 +269,7 @@ class _SeatBookingScreenState extends State<SeatBookingScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final seatProvider = Provider.of<SeatProvider>(context, listen: false);
+    final selectedSeatsNumbers = List<int>.from(seatProvider.selectedSeats);
 
     final success = await seatProvider.bookSelectedSeats(
       eventId: widget.event.id!,
@@ -254,7 +279,13 @@ class _SeatBookingScreenState extends State<SeatBookingScreen> {
     );
 
     if (success) {
-      Navigator.pop(context); // Close the form
+      await EventReminderService.scheduleEventReminders(
+        event: widget.event,
+        bookingSummary: selectedSeatsNumbers.isEmpty
+            ? null
+            : 'Seats ${selectedSeatsNumbers.map((e) => e + 1).join(', ')} reserved.',
+      );
+      Navigator.pop(context, true); // Close the form and notify parent
       CustomSnackbars.showSuccessSnackbar(
         context,
         'Seats booked successfully!',
@@ -357,7 +388,6 @@ class _SeatBookingScreenState extends State<SeatBookingScreen> {
                                       CustomSnackbars.showErrorSnackbar(
                                         context,
                                         seatProvider.errorMessage!,
-                            
                                       );
                                     }
                                   }

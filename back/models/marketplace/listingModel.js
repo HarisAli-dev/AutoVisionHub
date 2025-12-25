@@ -42,6 +42,7 @@ const listingSchema = new mongoose.Schema({
   isFeatured: { type: Boolean, default: false },
   viewCount: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
+  clickCount: { type: Number, default: 0 }, // Track item clicks
   // Stock/Quantity fields
   quantity: { type: Number, default: 1, min: 0 }, // Available stock
   originalQuantity: { type: Number, default: 1, min: 1 }, // Original stock when created
@@ -51,9 +52,6 @@ const listingSchema = new mongoose.Schema({
   startingBid: { type: Number },
   currentBid: { type: Number },
   bidIncrement: { type: Number, default: 1000 },
-  // Negotiation fields
-  isNegotiable: { type: Boolean, default: true },
-  minimumOffer: { type: Number },
   // Status
   status: { 
     type: String, 

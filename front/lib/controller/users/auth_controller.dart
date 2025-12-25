@@ -39,6 +39,7 @@ class AuthController {
   }
 
   static Future<String> signin(String email, String password) async {
+    print('API URL: $apiUrl');
     final String signinApiUrl = '$apiUrl/auth/login';
     final response = await http.post(
       Uri.parse(signinApiUrl),
@@ -65,6 +66,10 @@ class AuthController {
       }
 
       return "Login successful";
+    } else if (response.statusCode == 403) {
+      // User is banned
+      final data = json.decode(response.body);
+      return "BANNED:${data['message']}";
     } else {
       return "Wrong email or password";
     }

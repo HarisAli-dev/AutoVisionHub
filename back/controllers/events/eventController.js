@@ -5,6 +5,7 @@ const Ticket = require('../../models/events/ticketModel');
 const Layout = require('../../models/events/layoutModel');
 const Booking = require('../../models/events/bookingModel');
 const User = require('../../models/users/userModel');
+const rsvpEmailService = require('../../services/rsvpEmailService');
 
 const mongoose = require('mongoose');
 
@@ -95,12 +96,9 @@ exports.createEventWithLayout = async (req, res) => {
                 gridX: seatData.gridX,
                 gridY: seatData.gridY,
                 state: seatData.state || 'empty',
-                booking: new Booking({
-                        bookingType: 'seat',
-                        ticketOrSeatNumber: seatData.seatNumber
-                    }),
-                    isBooked: false
-                });
+                booking: null,
+                isBooked: false
+            });
             return seat.save();
         });
 
@@ -301,12 +299,8 @@ exports.updateEventWithTickets = async (req, res) => {
                 totalTickets.forEach((ticketData, index) => {
                     const ticket = new Ticket({
                         ticketNumber: ticketData.ticketNumber || (startingTicketNumber + index),
-
                         isBooked: false,
-                        booking: new Booking({
-                        bookingType: 'ticket',
-                        ticketOrSeatNumber: i
-                    })
+                        booking: null
                     });
                     newTicketPromises.push(ticket.save({ session }));
                 });
@@ -317,10 +311,7 @@ exports.updateEventWithTickets = async (req, res) => {
                     const ticket = new Ticket({
                         ticketNumber: startingTicketNumber + i,
                         isBooked: false,
-                        booking: new Booking({
-                        bookingType: 'ticket',
-                        ticketOrSeatNumber: i
-                    })
+                        booking: null
                     });
                     newTicketPromises.push(ticket.save({ session }));
                 }
@@ -380,8 +371,9 @@ exports.bookTickets = async (req, res) => {
     const { numberOfTickets , userName , userEmail , userPhone } = req.body;
     const userId = req.user.id;
 
+    let session;
     try {
-        const session = await mongoose.startSession();
+        session = await mongoose.startSession();
         session.startTransaction();
 
         // Find the event
@@ -413,10 +405,9 @@ exports.bookTickets = async (req, res) => {
         const ticketsToBook = availableTickets.slice(0, numberOfTickets);
         const bookedTicketNumbers = [];
         
-        const bookingPromises = ticketsToBook.map(ticket => {
-            // Create a booking for each ticket
-            ticket.isBooked = true;
-            ticket.booking = new Booking({
+        const bookingPromises = ticketsToBook.map(async (ticket) => {
+            // Create and save a booking for each ticket
+            const newBooking = new Booking({
                 userId,
                 userName,
                 userEmail,
@@ -425,6 +416,10 @@ exports.bookTickets = async (req, res) => {
                 bookingType: 'ticket',
                 ticketOrSeatNumber: ticket.ticketNumber
             });
+            const savedBooking = await newBooking.save({ session });
+            
+            ticket.isBooked = true;
+            ticket.booking = savedBooking._id;
             bookedTicketNumbers.push(ticket.ticketNumber);
             return ticket.save({ session });
         });
@@ -434,14 +429,31 @@ exports.bookTickets = async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
+        // Send RSVP confirmation email
+        try {
+            const user = await User.findById(userId);
+            const firstBooking = await Booking.findOne({ 
+                userId, 
+                eventId, 
+                ticketOrSeatNumber: bookedTicketNumbers[0] 
+            });
+            await rsvpEmailService.sendRSVPConfirmation(firstBooking, event, user);
+            console.log(`RSVP email sent to ${userEmail}`);
+        } catch (emailError) {
+            console.error('Error sending RSVP email:', emailError);
+            // Don't fail the booking if email fails
+        }
+
         res.status(200).json({
             success: true,
             message: 'Tickets booked successfully',
         });
 
     } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
+        if (session) {
+            await session.abortTransaction();
+            session.endSession();
+        }
         console.error('Error booking tickets:', error);
         res.status(500).json({
             success: false,
@@ -510,10 +522,8 @@ exports.bookSeat = async (req, res) => {
             });
         }
 
-        // Book the seat
-        seat.state = 'booked';
-        seat.isBooked = true;
-        seat.booking = new Booking({
+        // Create and save the booking first
+        const newBooking = new Booking({
             userId,
             userName,
             userEmail,
@@ -522,6 +532,12 @@ exports.bookSeat = async (req, res) => {
             bookingType: 'seat',
             ticketOrSeatNumber: seatNumber
         });
+        const savedBooking = await newBooking.save({ session });
+
+        // Book the seat
+        seat.state = 'booked';
+        seat.isBooked = true;
+        seat.booking = savedBooking._id;
         
         await seat.save({ session });
 
@@ -529,6 +545,17 @@ exports.bookSeat = async (req, res) => {
         session.endSession();
         
         console.log(`Seat ${seatNumber} booked successfully for user ${userId}`);
+        
+        // Send RSVP confirmation email
+        try {
+            const user = await User.findById(userId);
+            await rsvpEmailService.sendRSVPConfirmation(savedBooking, event, user);
+            console.log(`RSVP email sent to ${userEmail}`);
+        } catch (emailError) {
+            console.error('Error sending RSVP email:', emailError);
+            // Don't fail the booking if email fails
+        }
+        
         res.status(200).json({
             success: true,
             message: 'Seat booked successfully'
@@ -590,10 +617,7 @@ exports.createEventWithTickets = async (req, res) => {
                 const ticket = new Ticket({
                     ticketNumber: ticketData.ticketNumber || index + 1,
                     isBooked: false,
-                    booking: new Booking({
-                        bookingType: 'ticket',
-                        ticketOrSeatNumber: i
-                    })
+                    booking: null
                 });
                 ticketPromises.push(ticket.save());
             });
@@ -603,14 +627,11 @@ exports.createEventWithTickets = async (req, res) => {
                 const ticket = new Ticket({
                     ticketNumber: i,
                     isBooked: false,
-                    booking: new Booking({
-                        bookingType: 'ticket',
-                        ticketOrSeatNumber: i
-                    })
+                    booking: null
                 });
                 ticketPromises.push(ticket.save());
+            }
         }
-    }
 
         const savedTickets = await Promise.all(ticketPromises);
 
@@ -643,12 +664,19 @@ exports.getMyEvents = async (req, res) => {
         
         // Use populate directly in the query for better performance
         const events = await Event.find({ createdBy: userId })
-            .populate('ticketList')
+            .populate({
+                path: 'ticketList',
+                populate: {
+                    path: 'booking'
+                }
+            })
             .populate({
                 path: 'layout',
                 populate: {
                     path: 'seatList',
-                    populate: 'booking' // Populate booking inside each seat
+                    populate: {
+                        path: 'booking'
+                    }
                 }
             })
             .populate('createdBy', 'name email phoneNumber');
@@ -685,13 +713,20 @@ exports.getAllEvents = async (req, res) => {
     try {
         // Use populate directly in the query for better performance
         const events = await Event.find()
-        .populate('createdBy')
-            .populate('ticketList')
+            .populate('createdBy')
+            .populate({
+                path: 'ticketList',
+                populate: {
+                    path: 'booking'
+                }
+            })
             .populate({
                 path: 'layout',
                 populate: {
                     path: 'seatList',
-                    populate: 'booking' // Populate booking inside each seat
+                    populate: {
+                        path: 'booking'
+                    }
                 }
             });
         res.status(200).json({
@@ -700,6 +735,223 @@ exports.getAllEvents = async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching all events:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+// Get all bookings for a specific event
+exports.getEventBookings = async (req, res) => {
+    const { eventId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        // Find the event and verify ownership
+        const event = await Event.findById(eventId);
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+
+        if (event.createdBy.toString() !== userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to view bookings for this event'
+            });
+        }
+
+        let bookings = [];
+
+        if (event.bookingType === 'seat') {
+            // Fetch bookings from seats
+            const layout = await Layout.findById(event.layout).populate({
+                path: 'seatList',
+                populate: {
+                    path: 'booking'
+                }
+            });
+            if (layout && layout.seatList) {
+                const bookedSeats = layout.seatList.filter(seat => seat.isBooked && seat.booking);
+                bookings = bookedSeats.map(seat => ({
+                    userId: seat.booking.userId,
+                    userName: seat.booking.userName,
+                    userEmail: seat.booking.userEmail,
+                    userPhoneNumber: seat.booking.userPhoneNumber,
+                    eventId: seat.booking.eventId,
+                    bookingType: 'seat',
+                    ticketOrSeatNumber: seat.seatNumber,
+                    bookingDate: seat.booking.bookingDate,
+                    createdAt: seat.booking.createdAt,
+                    updatedAt: seat.booking.updatedAt,
+                }));
+            }
+        } else if (event.bookingType === 'ticket') {
+            // Fetch bookings from tickets
+            const tickets = await Ticket.find({ 
+                _id: { $in: event.ticketList }, 
+                isBooked: true 
+            }).populate('booking');
+            bookings = tickets.filter(ticket => ticket.booking).map(ticket => ({
+                userId: ticket.booking.userId,
+                userName: ticket.booking.userName,
+                userEmail: ticket.booking.userEmail,
+                userPhoneNumber: ticket.booking.userPhoneNumber,
+                eventId: ticket.booking.eventId,
+                bookingType: 'ticket',
+                ticketOrSeatNumber: ticket.ticketNumber,
+                bookingDate: ticket.booking.bookingDate,
+                createdAt: ticket.booking.createdAt,
+                updatedAt: ticket.booking.updatedAt,
+            }));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: bookings
+        });
+
+    } catch (error) {
+        console.error('Error fetching event bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+// Delete a booking
+exports.deleteBooking = async (req, res) => {
+    const { eventId } = req.params;
+    const { bookingType, ticketOrSeatNumber } = req.body;
+    const userId = req.user.id;
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Find the event and verify ownership
+        const event = await Event.findById(eventId).session(session);
+        if (!event) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+
+        if (event.createdBy.toString() !== userId) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to delete bookings for this event'
+            });
+        }
+
+        if (bookingType === 'seat') {
+            // Find and update the seat
+            const layout = await Layout.findById(event.layout).populate('seatList').session(session);
+            if (!layout) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({
+                    success: false,
+                    message: 'Event layout not found'
+                });
+            }
+
+            const seat = layout.seatList.find(s => s.seatNumber === ticketOrSeatNumber);
+            if (!seat) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({
+                    success: false,
+                    message: 'Seat not found'
+                });
+            }
+
+            if (!seat.isBooked) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Seat is not booked'
+                });
+            }
+
+            // Delete the booking document
+            if (seat.booking) {
+                await Booking.findByIdAndDelete(seat.booking).session(session);
+            }
+
+            // Reset seat booking
+            seat.state = 'empty';
+            seat.isBooked = false;
+            seat.booking = null;
+            await seat.save({ session });
+
+        } else if (bookingType === 'ticket') {
+            // Find and update the ticket
+            const ticket = await Ticket.findOne({
+                _id: { $in: event.ticketList },
+                ticketNumber: ticketOrSeatNumber
+            }).session(session);
+
+            if (!ticket) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({
+                    success: false,
+                    message: 'Ticket not found'
+                });
+            }
+
+            if (!ticket.isBooked) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Ticket is not booked'
+                });
+            }
+
+            // Delete the booking document
+            if (ticket.booking) {
+                await Booking.findByIdAndDelete(ticket.booking).session(session);
+            }
+
+            // Reset ticket booking
+            ticket.isBooked = false;
+            ticket.booking = null;
+            await ticket.save({ session });
+        } else {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid booking type'
+            });
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({
+            success: true,
+            message: 'Booking deleted successfully'
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error('Error deleting booking:', error);
         res.status(500).json({
             success: false,
             message: 'Internal server error',

@@ -43,20 +43,16 @@ class EventModel {
       eventLocation: json['eventLocation'],
       bookingType: json['bookingType'],
       ticketPrice: (json['ticketPrice'] as num).toDouble(),
-      createdBy: User.fromJson(json['createdBy']),
+      createdBy: json['createdBy'] != null
+          ? User.fromJson(json['createdBy'])
+          : null,
 
       layout: json['layout'] != null
           ? LayoutModel.fromJson(json['layout'])
           : null,
       ticketList: json['ticketList'] != null
           ? (json['ticketList'] as List)
-                .asMap()
-                .entries
-                .map((entry) => TicketModel(
-                      id: entry.value.toString(),
-                      ticketNumber: entry.key + 1, // Using index + 1 as ticket number
-                      isBooked: false,
-                    ))
+                .map((ticketJson) => TicketModel.fromJson(ticketJson))
                 .toList()
           : null,
       createdAt: json['createdAt'] != null

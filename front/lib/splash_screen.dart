@@ -6,6 +6,7 @@ import 'package:front/utils/sizes.dart';
 import 'package:front/view/auth/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -42,14 +43,25 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // Navigate to the next screen after the splash screen duration
-    Future.delayed(Duration(seconds: 3), () async {
+    Future.delayed(Duration(seconds: 2), () async {
       var box = await Hive.openBox('sessionBox');
       String userRole = box.get('role', defaultValue: 'guest');
       bool isLoggedIn = box.get('isLoggedIn', defaultValue: false);
       String token = box.get('token', defaultValue: '');
+      bool isFirstTime = box.get('isFirstTime', defaultValue: true);
       print('User Role: $userRole');
       print('Is Logged In: $isLoggedIn');
       print('Token: $token');
+      print('Is First Time: $isFirstTime');
+
+      // Check if this is the first time opening the app
+      if (isFirstTime) {
+        // Mark as not first time anymore
+        await box.put('isFirstTime', false);
+        // Navigate to dashboard
+        Navigator.pushReplacementNamed(context, '/dashboard');
+        return;
+      }
 
       if (isLoggedIn && token.isNotEmpty) {
         final isTokenValid = await AuthController.checkTokenExpiry(token);
@@ -62,10 +74,7 @@ class _SplashScreenState extends State<SplashScreen>
           );
         }
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => SignInScreen()),
-        );
+        Navigator.pushReplacementNamed(context, '/signin');
       }
     });
   }
@@ -77,8 +86,18 @@ class _SplashScreenState extends State<SplashScreen>
     debugPrint('Requesting all permissions...');
     final response = await permissionManager.requestAllPermissions();
     debugPrint('Permission request response: $response');
-    // We don't handle the result here as we'll proceed regardless
-    // If permissions are denied, relevant features will show their own prompts when needed
+
+    // Check if storage permission is permanently denied
+    final storageStatus = await Permission.storage.status;
+    if (storageStatus.isPermanentlyDenied && mounted) {
+      // Show dialog to guide user to settings
+      await permissionManager.showPermissionRationaleDialog(
+        context,
+        title: 'Storage Permission Required',
+        message:
+            'Storage permission is required for recording and saving media. Please enable it in app settings.',
+      );
+    }
   }
 
   @override
@@ -105,11 +124,17 @@ class _SplashScreenState extends State<SplashScreen>
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.account_circle, // Placeholder for logo icon
-                    color: AppColors.foregroundColor,
-                    size: AppSizes.getScreenWidth(context) * 0.2,
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/icons/appstore.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.directions_car,
+                        color: AppColors.foregroundColor,
+                        size: AppSizes.getScreenWidth(context) * 0.15,
+                      );
+                    },
                   ),
                 ),
               ),

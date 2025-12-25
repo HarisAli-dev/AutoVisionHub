@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:front/controller/chats/chat_controller.dart';
 import 'package:front/controller/chats/chat_message_controller.dart';
+import 'package:front/controller/report_controller.dart';
 import 'package:front/model/chats/message_model.dart';
 import 'package:front/providers/unified_audio_provider.dart';
 import 'package:front/services/cloudinary_service.dart';
@@ -13,8 +14,8 @@ import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -331,6 +332,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showMessageOptions(Message message) {
+    final isMyMessage = message.senderId == _currentUserId;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -338,18 +341,198 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Delete Message'),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteMessage(message);
+            if (isMyMessage)
+              ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Delete Message'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteMessage(message);
+                },
+              ),
+            if (!isMyMessage)
+              ListTile(
+                leading: Icon(Icons.flag, color: Colors.orange),
+                title: Text('Report User'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _reportUser(message);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reportUser(Message message) async {
+    final TextEditingController reasonController = TextEditingController();
+    final List<File> selectedImages = [];
+    final ImagePicker picker = ImagePicker();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.backgroundColor,
+          title: Text(
+            'Report User',
+            style: TextStyle(color: AppColors.titleColor),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Why are you reporting this user?',
+                  style: TextStyle(fontSize: 14, color: AppColors.shadeColor),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  style: TextStyle(color: AppColors.foregroundColor),
+                  decoration: InputDecoration(
+                    hintText: 'Enter reason...',
+                    hintStyle: TextStyle(color: AppColors.shadeColor),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.shadeColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.shadeColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                  maxLines: 3,
+                  maxLength: 200,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Upload proof (optional):',
+                  style: TextStyle(fontSize: 14, color: AppColors.shadeColor),
+                ),
+                SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                    if (image != null) {
+                      setState(() {
+                        selectedImages.add(File(image.path));
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.add_photo_alternate),
+                  label: Text('Add Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.shadeColor,
+                    foregroundColor: AppColors.foregroundColor,
+                  ),
+                ),
+                if (selectedImages.isNotEmpty) ...[
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: selectedImages.map((img) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              img,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedImages.remove(img);
+                                });
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.close, size: 16, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.shadeColor),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (reasonController.text.trim().isEmpty) {
+                  CustomSnackbars.showErrorSnackbar(
+                    context,
+                    'Please enter a reason',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Submit Report'),
             ),
           ],
         ),
       ),
     );
+
+    if (result == true && mounted) {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final reportResult = await ReportController.reportUser(
+        userId: message.senderId,
+        reason: reasonController.text.trim(),
+        proofImageFiles: selectedImages,
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+
+        if (reportResult.contains('success')) {
+          CustomSnackbars.showSuccessSnackbar(context, reportResult, 2);
+        } else {
+          CustomSnackbars.showErrorSnackbar(context, reportResult);
+        }
+      }
+    }
+
+    reasonController.dispose();
   }
 
   Future<void> _deleteMessage(Message message) async {
@@ -407,7 +590,6 @@ class _ChatScreenState extends State<ChatScreen> {
         CustomSnackbars.showErrorSnackbar(
           context,
           'Failed to delete message: ${e.toString()}',
-   
         );
       }
     }
@@ -431,11 +613,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _sendMessage(type, file: file);
       }
     } catch (e) {
-      CustomSnackbars.showErrorSnackbar(
-        context,
-        'Error picking image: $e',
-   
-      );
+      CustomSnackbars.showErrorSnackbar(context, 'Error picking image: $e');
     }
   }
 
@@ -484,11 +662,7 @@ class _ChatScreenState extends State<ChatScreen> {
         await _sendMessage(MessageType.video, file: file);
       }
     } catch (e) {
-      CustomSnackbars.showErrorSnackbar(
-        context,
-        'Error picking video: $e',
-       
-      );
+      CustomSnackbars.showErrorSnackbar(context, 'Error picking video: $e');
     }
   }
 
@@ -544,7 +718,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       final isMe = message.senderId == _currentUserId;
                       // Convert UTC time to local time zone
                       final localTime = message.createdAt.toLocal();
-                      final time = DateFormat.jm().format(localTime);
+                      final time = TimeUtils.formatTimePKT(message.createdAt);
 
                       // Show date header if this is first message or date changed from previous message
                       final showDateHeader =
@@ -793,10 +967,7 @@ class _ChatScreenState extends State<ChatScreen> {
       //   _scrollToBottom();
       // }
     } catch (e) {
-      CustomSnackbars.showErrorSnackbar(
-        context,
-        'Error sending message: $e',
-      );
+      CustomSnackbars.showErrorSnackbar(context, 'Error sending message: $e');
     }
   }
 

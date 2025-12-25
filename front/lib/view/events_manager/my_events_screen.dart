@@ -7,7 +7,9 @@ import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/events_manager/edit_event_screen.dart';
+import 'package:front/view/events_manager/manage_booking_screen.dart';
 import 'package:front/view/community_member/events/host_live_stream_screen.dart';
+import 'package:front/utils/time_utils.dart';
 
 class MyEventsScreen extends StatefulWidget {
   const MyEventsScreen({super.key});
@@ -18,37 +20,31 @@ class MyEventsScreen extends StatefulWidget {
 
 class _MyEventsScreenState extends State<MyEventsScreen> {
   List<EventModel> myEvents = [];
+  late Future<List<EventModel>> _eventsFuture;
+
   @override
   void initState() {
     super.initState();
-    fetchMyEvents();
+    _eventsFuture = fetchMyEvents();
   }
 
-  void fetchMyEvents() {
-    EventController.fetchEvents().then((events) {
-      setState(() {
-        myEvents = events;
-      });
+  Future<List<EventModel>> fetchMyEvents() {
+    return EventController.fetchEvents().then((events) {
+      if (mounted) {
+        setState(() {
+          myEvents = events;
+        });
+      }
+      return events;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'My Events',
-          style: TextStyle(
-            fontSize: AppSizes.titleFontSize(context),
-            color: AppColors.foregroundColor,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.appBarColor,
-      ),
-      body: FutureBuilder(
-        future: EventController.fetchEvents(),
+    return Container(
+      color: AppColors.backgroundColor,
+      child: FutureBuilder<List<EventModel>>(
+        future: _eventsFuture,
         initialData: myEvents,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -57,6 +53,9 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else {
             final events = snapshot.data ?? [];
+            if (events.isEmpty) {
+              return _buildEmptyState(context);
+            }
             return ListView.builder(
               padding: EdgeInsets.all(AppSizes.getScreenWidth(context) * 0.04),
               itemCount: events.length,
@@ -64,13 +63,17 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                 final event = events[index];
                 return GestureDetector(
                   onLongPress: () {
-                    // Show delete confirmation dialog
-                    _showDeleteDialog(event);
+                    _showDeleteDialog(event, context);
                   },
                   onTap: () {
-                    //TODO: show booking details
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManageBookingScreen(event: event),
+                      ),
+                    );
                   },
-                  child: _buildEventCard(event),
+                  child: _buildEventCard(event, context),
                 );
               },
             );
@@ -80,7 +83,45 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
   }
 
-  Widget _buildEventCard(EventModel event) {
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSizes.mediumPadding(context),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.event_busy,
+              size: AppSizes.extraLargeIconSize(context),
+              color: AppColors.shadeColor,
+            ),
+            SizedBox(height: AppSizes.mediumSpacing(context)),
+            Text(
+              'No events yet',
+              style: TextStyle(
+                color: AppColors.foregroundColor,
+                fontSize: AppSizes.subtitleFontSize(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: AppSizes.smallSpacing(context)),
+            Text(
+              'Create your first automotive experience to engage the community.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.shadeColor,
+                fontSize: AppSizes.bodyFontSize(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEventCard(EventModel event, BuildContext context) {
     return Card(
       margin: EdgeInsets.only(bottom: AppSizes.getScreenHeight(context) * 0.02),
       color: AppColors.backgroundColor,
@@ -113,7 +154,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: AppColors.foregroundColor),
                   onSelected: (value) {
-                    _handleEventAction(value, event);
+                    _handleEventAction(value, event, context);
                   },
                   itemBuilder: (BuildContext context) => [
                     PopupMenuItem<String>(
@@ -163,23 +204,25 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
             // Event details
             _buildEventDetail(
               Icons.calendar_today,
-              '${event.eventDateTime.day}/${event.eventDateTime.month}/${event.eventDateTime.year}',
+              TimeUtils.formatDatePKT(event.eventDateTime),
+              context,
             ),
             SizedBox(height: AppSizes.getScreenHeight(context) * 0.005),
             _buildEventDetail(
               Icons.access_time,
-              '${event.eventDateTime.hour.toString().padLeft(2, '0')}:${event.eventDateTime.minute.toString().padLeft(2, '0')}',
+              TimeUtils.formatTimePKT(event.eventDateTime),
+              context,
             ),
             SizedBox(height: AppSizes.getScreenHeight(context) * 0.005),
-            _buildEventDetail(Icons.location_on, event.eventLocation),
+            _buildEventDetail(Icons.location_on, event.eventLocation, context),
             SizedBox(height: AppSizes.getScreenHeight(context) * 0.015),
 
             // Booking statistics
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildBookingStats(event),
-                _buildBookingTypeChip(event.bookingType),
+                _buildBookingStats(event, context),
+                _buildBookingTypeChip(event.bookingType, context),
               ],
             ),
           ],
@@ -188,7 +231,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
   }
 
-  Widget _buildEventDetail(IconData icon, String text) {
+  Widget _buildEventDetail(IconData icon, String text, BuildContext context) {
     return Row(
       children: [
         Icon(
@@ -210,9 +253,8 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
   }
 
-  Widget _buildBookingStats(EventModel event) {
+  Widget _buildBookingStats(EventModel event, BuildContext context) {
     if (event.bookingType == 'seat') {
-      // Use layout data if available, otherwise mock data
       final totalSeats =
           event.layout?.seatList.length ??
           (event.id == '1'
@@ -271,7 +313,6 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
         ],
       );
     } else {
-      // Mock data for demonstration - replace with actual booking logic
       final totalTickets = event.ticketList!.length;
       final bookedTickets = event.ticketList!
           .where((ticket) => ticket.isBooked == true)
@@ -322,7 +363,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     }
   }
 
-  Widget _buildBookingTypeChip(String bookingType) {
+  Widget _buildBookingTypeChip(String bookingType, BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: AppSizes.getScreenWidth(context) * 0.03,
@@ -346,27 +387,32 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
   }
 
-  void _handleEventAction(String action, EventModel event) {
+  void _handleEventAction(
+    String action,
+    EventModel event,
+    BuildContext context,
+  ) {
     switch (action) {
       case 'edit':
-        _navigateToEditEvent(event);
+        _navigateToEditEvent(event, context);
         break;
       case 'livestream':
-        _navigateToLiveStream(event);
+        _navigateToLiveStream(event, context);
         break;
     }
   }
 
-  void _navigateToEditEvent(EventModel event) async {
+  void _navigateToEditEvent(EventModel event, BuildContext context) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => EditEventScreen(event: event)),
     );
-    // Refresh the list if needed
-    setState(() {});
+    setState(() {
+      _eventsFuture = fetchMyEvents();
+    });
   }
 
-  void _navigateToLiveStream(EventModel event) {
+  void _navigateToLiveStream(EventModel event, BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -375,7 +421,7 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
     );
   }
 
-  void _showDeleteDialog(EventModel event) {
+  void _showDeleteDialog(EventModel event, BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -406,14 +452,15 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
               ),
               onPressed: () async {
                 if (event.images.isNotEmpty) {
-                  // Delete all event images
                   for (String imageUrl in event.images) {
                     await CloudinaryService.deleteFileByUrl(url: imageUrl);
                   }
                 }
                 final response = await EventController.deleteEvent(event.id!);
                 if (response) {
-                  fetchMyEvents();
+                  setState(() {
+                    _eventsFuture = fetchMyEvents();
+                  });
                   CustomSnackbars.showSuccessSnackbar(
                     context,
                     '${event.eventName} deleted successfully',
@@ -425,7 +472,6 @@ class _MyEventsScreenState extends State<MyEventsScreen> {
                     'Failed to delete ${event.eventName}',
                   );
                 }
-
                 Navigator.of(context).pop();
               },
             ),

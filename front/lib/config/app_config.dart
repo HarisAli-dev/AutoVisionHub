@@ -13,9 +13,14 @@ class AppConfig {
       dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
   static String get firebaseAppId => dotenv.env['FIREBASE_APP_ID'] ?? '';
 
+  static String get bgRemoverApiUrl =>
+      dotenv.env['BG_REMOVER_API_URL'] ?? '';
+  static String get geminiApiKey =>
+      dotenv.env['GEMINI_API_KEY'] ?? '';
+
   // API Configuration
   static String get apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'https://auto-vision-hub-nkilh.ondigitalocean.app/api';
+      dotenv.env['API_BASE_URL'] ?? '';
 
   // Stripe Configuration
   static String get stripePublishableKey =>

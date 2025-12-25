@@ -183,4 +183,91 @@ class UserController {
       return false;
     }
   }
+
+  //-----======================== GET ALL USERS (Admin) ========================-----
+  static Future<List<User>> getAllUsers() async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await http.get(
+        Uri.parse('$apiUrl/users/all'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((user) => User.fromJson(user)).toList();
+      } else {
+        throw Exception('Failed to load users: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching all users: $e');
+      throw Exception('Failed to load users: $e');
+    }
+  }
+
+  //-----======================== DELETE USER (Admin) ========================-----
+  static Future<bool> deleteUser(String userId) async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await http.delete(
+        Uri.parse('$apiUrl/users/delete/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('User deleted successfully');
+        return true;
+      } else {
+        debugPrint('Failed to delete user: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error deleting user: $e');
+      return false;
+    }
+  }
+
+  //-----======================== BAN/UNBAN USER (Admin) ========================-----
+  static Future<bool> banUser(String userId, bool ban) async {
+    try {
+      final token = HiveUtils.getData('token');
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final response = await http.put(
+        Uri.parse('$apiUrl/users/ban/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'ban': ban}),
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('User ban status updated successfully');
+        return true;
+      } else {
+        debugPrint('Failed to update ban status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error updating ban status: $e');
+      return false;
+    }
+  }
 }

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:front/model/users/user_model.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl_mobile_field/intl_mobile_field.dart';
 
 class UpdateProfileScreen extends StatefulWidget {
   final User user;
@@ -227,14 +228,43 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   disabled: true,
                 ),
                 SizedBox(height: screenHeight * 0.02),
-                CustomWidgets.customTextFormField(
+                IntlMobileField(
                   controller: _phoneController,
-                  label: 'Phone',
-                  borderColor: AppColors.primary,
-                  textColor: AppColors.foregroundColor,
-                  fontsize: screenWidth * 0.04,
-                  isphone: true,
-                  validator: ValidationHelpers.validatePhoneNumber,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    labelStyle: TextStyle(color: AppColors.foregroundColor),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.primary),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.primary),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: AppColors.foregroundColor,
+                    fontSize: screenWidth * 0.04,
+                  ),
+                  dropdownTextStyle: TextStyle(
+                    color: AppColors.foregroundColor,
+                  ),
+                  initialCountryCode: 'PK',
+                  disableLengthCheck: false,
+                  autovalidateMode: AutovalidateMode.disabled,
+                  validator: (value) {
+                    if (value == null || value.completeNumber.isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: screenHeight * 0.02),
                 CustomWidgets.customTextFormField(

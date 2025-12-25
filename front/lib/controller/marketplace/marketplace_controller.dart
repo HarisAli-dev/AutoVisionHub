@@ -1,38 +1,197 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:front/model/marketplace/listing_model.dart';
 import 'package:front/model/marketplace/bid_model.dart';
-import 'package:front/model/marketplace/offer_model.dart';
 import 'package:front/model/marketplace/marketplace_chat_model.dart';
 import 'package:front/model/marketplace/marketplace_message_model.dart';
 import 'package:front/services/marketplace_service.dart';
+import 'package:front/services/payment_service.dart';
 import 'package:front/utils/hive_utils.dart';
+import 'package:front/config/firebase_api.dart';
 
 class MarketplaceController extends ChangeNotifier {
   // State variables
   List<ListingModel> _listings = [];
   List<ListingModel> _myListings = [];
   List<ListingModel> _favoriteListings = [];
+  List<ListingModel> _recentlyViewedItems = [];
   List<BidModel> _bids = [];
-  List<OfferModel> _offers = [];
   List<MarketplaceChatModel> _chats = [];
   List<MarketplaceMessageModel> _messages = [];
+  // Reviews cache - fetched from backend
+  final Map<String, Map<String, dynamic>> _listingReviewsCache = {};
 
   bool _isLoading = false;
   String? _error;
   Map<String, dynamic>? _pagination;
+  // Cart state
+  final List<ListingModel> _cartItems = [];
+  final Map<String, int> _cartQuantities = {};
 
   // Getters
   List<ListingModel> get listings => _listings;
   List<ListingModel> get myListings => _myListings;
   List<ListingModel> get favoriteListings => _favoriteListings;
+  List<ListingModel> get recentlyViewedItems => _recentlyViewedItems;
   List<BidModel> get bids => _bids;
-  List<OfferModel> get offers => _offers;
   List<MarketplaceChatModel> get chats => _chats;
   List<MarketplaceMessageModel> get messages => _messages;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   Map<String, dynamic>? get pagination => _pagination;
+  List<ListingModel> get cartItems => List.unmodifiable(_cartItems);
+  int getCartQuantity(String listingId) => _cartQuantities[listingId] ?? 0;
+  int get totalCartItems => _cartQuantities.values.fold(0, (a, b) => a + b);
+  double get cartTotalAmount => _cartItems.fold(0.0, (sum, item) {
+    final qty = _cartQuantities[item.id ?? ''] ?? 1;
+    return sum + (item.price * qty);
+  });
+
+  // REVIEW METHODS
+
+  // Get reviews for a listing from backend
+  Future<Map<String, dynamic>> getListingReviews(String listingId) async {
+    try {
+      // Check cache first
+      if (_listingReviewsCache.containsKey(listingId)) {
+        return _listingReviewsCache[listingId]!;
+      }
+
+      final result = await MarketplaceService.getListingReviews(
+        listingId: listingId,
+      );
+
+      print('DEBUG: Raw reviews result: $result');
+
+      // Transform reviews to match UI expectations
+      final reviewsData = result['data'];
+      final rawReviews = reviewsData['reviews'] as List<dynamic>;
+
+      final transformedReviews = rawReviews.map((review) {
+        // Extract user ID from userId object (populated field)
+        final user = review['userId'];
+        final userId = user is Map ? user['_id'] ?? user['id'] : null;
+        final userName = user is Map ? user['name'] : 'Anonymous';
+
+        return {
+          'rating': review['rating'],
+          'review': review['review'] ?? '',
+          'userId': userId,
+          'userName': userName,
+          'createdAt': review['createdAt'],
+          'updatedAt': review['updatedAt'],
+          '_id': review['_id'],
+        };
+      }).toList();
+
+      final transformedData = {
+        'reviews': transformedReviews,
+        'averageRating': reviewsData['averageRating'] ?? 0.0,
+        'totalReviews': reviewsData['totalReviews'] ?? 0,
+      };
+
+      print('DEBUG: Transformed ${transformedReviews.length} reviews');
+
+      // Cache the transformed result
+      _listingReviewsCache[listingId] = transformedData;
+
+      notifyListeners();
+
+      return transformedData;
+    } catch (e, stackTrace) {
+      print('Error fetching reviews: $e');
+      print('Stack trace: $stackTrace');
+      return {'reviews': [], 'averageRating': 0.0, 'totalReviews': 0};
+    }
+  }
+
+  // Get reviews list for UI (synchronous, from cache)
+  List<Map<String, dynamic>> getReviews(String listingId) {
+    final cached = _listingReviewsCache[listingId];
+    if (cached != null && cached['reviews'] != null) {
+      return List<Map<String, dynamic>>.from(cached['reviews']);
+    }
+    return [];
+  }
+
+  // Get average rating (synchronous, from cache)
+  double getAverageRating(String listingId) {
+    final cached = _listingReviewsCache[listingId];
+    if (cached != null && cached['averageRating'] != null) {
+      return (cached['averageRating'] as num).toDouble();
+    }
+    return 0.0;
+  }
+
+  // Add or update review
+  Future<bool> addOrUpdateReview(
+    String listingId, {
+    required double rating,
+    String? review,
+  }) async {
+    if (_authToken == null) {
+      _setError('Authentication required');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _error = null;
+
+      // Create review
+      await MarketplaceService.createReview(
+        listingId: listingId,
+        rating: rating,
+        review: review,
+        token: _authToken!,
+      );
+
+      // Clear cache to force refresh
+      _listingReviewsCache.remove(listingId);
+
+      // Fetch updated reviews
+      await getListingReviews(listingId);
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Failed to add/update review: $e');
+      return false;
+    }
+  }
+
+  // Delete review
+  Future<bool> deleteReview(String reviewId, String listingId) async {
+    if (_authToken == null) {
+      _setError('Authentication required');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _error = null;
+
+      await MarketplaceService.deleteReview(
+        reviewId: reviewId,
+        token: _authToken!,
+      );
+
+      // Clear cache to force refresh
+      _listingReviewsCache.remove(listingId);
+
+      // Fetch updated reviews
+      await getListingReviews(listingId);
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('Failed to delete review: $e');
+      return false;
+    }
+  }
 
   // Get auth token from HiveUtils
   String? get _authToken => HiveUtils.getData('token');
@@ -43,10 +202,105 @@ class MarketplaceController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // CART METHODS
+  void addToCart(ListingModel listing, {int quantity = 1}) {
+    final id = listing.id;
+    if (id == null) return;
+    if (!_cartItems.any((l) => l.id == id)) {
+      _cartItems.add(listing);
+    }
+    _cartQuantities[id] = (_cartQuantities[id] ?? 0) + quantity;
+    notifyListeners();
+  }
+
+  void removeFromCart(String listingId) {
+    _cartItems.removeWhere((l) => l.id == listingId);
+    _cartQuantities.remove(listingId);
+    notifyListeners();
+  }
+
+  void updateCartQuantity(String listingId, int quantity) {
+    if (quantity <= 0) {
+      removeFromCart(listingId);
+    } else {
+      _cartQuantities[listingId] = quantity;
+      notifyListeners();
+    }
+  }
+
+  void clearCart() {
+    _cartItems.clear();
+    _cartQuantities.clear();
+    notifyListeners();
+  }
+
+  Future<bool> completeOrder() async {
+    if (_authToken == null) {
+      _setError('Authentication required');
+      return false;
+    }
+    if (_cartItems.isEmpty) {
+      _setError('Cart is empty');
+      return false;
+    }
+
+    try {
+      _setLoading(true);
+      _error = null;
+      // Convert amount to cents (minor unit). Prices are in PKR in UI; for demo use USD.
+      final amountInCents = (cartTotalAmount * 100).round();
+      final totalAmount = cartTotalAmount;
+
+      // Get the seller's user ID from the first cart item (assuming all items from same seller)
+      if (_cartItems.isEmpty) {
+        throw Exception('Cart is empty');
+      }
+      final sellerId = _cartItems.first.seller?.id ?? '';
+      if (sellerId.isEmpty) {
+        throw Exception('Seller information not available');
+      }
+
+      final intent = await PaymentService.createPaymentIntent(
+        amount: amountInCents,
+        recipientUserId: sellerId,
+        transactionType: 'marketplace_purchase',
+        relatedEntityId: _cartItems.first.id!,
+        relatedEntityType: 'Listing',
+        description: 'Marketplace purchase',
+        currency: 'usd',
+      );
+
+      // Normally, we'd confirm payment with Stripe SDK. For now, consider intent creation success as order success.
+      clearCart();
+      _setLoading(false);
+      if (intent['clientSecret'] != null) {
+        _notifyUser(
+          'Order initiated',
+          'Your order for PKR ${totalAmount.toStringAsFixed(0)} is being processed.',
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _setError('Failed to complete order: $e');
+      return false;
+    }
+  }
+
   // Set loading state
   void _setLoading(bool loading) {
+    if (_isLoading == loading) return;
     _isLoading = loading;
-    notifyListeners();
+    if (!hasListeners) return;
+    final schedulerPhase = SchedulerBinding.instance.schedulerPhase;
+    if (schedulerPhase == SchedulerPhase.idle ||
+        schedulerPhase == SchedulerPhase.postFrameCallbacks) {
+      notifyListeners();
+    } else {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (hasListeners) notifyListeners();
+      });
+    }
   }
 
   // Set error
@@ -54,6 +308,14 @@ class MarketplaceController extends ChangeNotifier {
     _error = error;
     _isLoading = false;
     notifyListeners();
+  }
+
+  void _notifyUser(String title, String body) {
+    if (kIsWeb) {
+      debugPrint('[MarketplaceController] $title — $body');
+      return;
+    }
+    FirebaseApi.showSimpleNotification(title: title, body: body);
   }
 
   // LISTING METHODS
@@ -103,6 +365,11 @@ class MarketplaceController extends ChangeNotifier {
           break;
         case 'most_viewed':
           backendSortBy = 'viewCount';
+          backendSortOrder = 'desc';
+          break;
+        case 'trending':
+        case 'popular':
+          backendSortBy = 'popularity';
           backendSortOrder = 'desc';
           break;
         default:
@@ -314,7 +581,9 @@ class MarketplaceController extends ChangeNotifier {
       final listingIndex = _listings.indexWhere((l) => l.id == listingId);
       if (listingIndex != -1) {
         _listings[listingIndex].favoriteCount += result['isFavorited'] ? 1 : -1;
-        print('DEBUG: Updated favorite count for listing at index $listingIndex');
+        print(
+          'DEBUG: Updated favorite count for listing at index $listingIndex',
+        );
       }
 
       // Refresh the favorites list to keep it in sync
@@ -356,15 +625,38 @@ class MarketplaceController extends ChangeNotifier {
       print('DEBUG: Raw API result: $result');
 
       // Extract the favorites from the correct path: data.favorites
-      final List<dynamic> favoritesData = result['data']['favorites'] ?? [];
+      final dataResult = result['data'];
+      if (dataResult == null) {
+        print('DEBUG: result[data] is null, setting empty list');
+        if (refresh || page == 1) {
+          _favoriteListings = [];
+        }
+        _setLoading(false);
+        notifyListeners();
+        return;
+      }
+
+      final List<dynamic> favoritesData = dataResult['favorites'] ?? [];
       print('DEBUG: Found ${favoritesData.length} favorites in response');
 
-      // Convert to ListingModel objects
+      // Filter out null items and convert to ListingModel objects
       final List<ListingModel> favoriteListings = favoritesData
-          .map((data) => ListingModel.fromJson(data))
+          .where((data) => data != null)
+          .map((data) {
+            try {
+              return ListingModel.fromJson(data as Map<String, dynamic>);
+            } catch (e) {
+              print('DEBUG: Error parsing listing: $e');
+              return null;
+            }
+          })
+          .where((listing) => listing != null)
+          .cast<ListingModel>()
           .toList();
 
-      print('DEBUG: Converted to ${favoriteListings.length} ListingModel objects');
+      print(
+        'DEBUG: Converted to ${favoriteListings.length} ListingModel objects',
+      );
 
       if (refresh || page == 1) {
         _favoriteListings = favoriteListings;
@@ -372,8 +664,10 @@ class MarketplaceController extends ChangeNotifier {
         _favoriteListings.addAll(favoriteListings);
       }
 
-      print('DEBUG: _favoriteListings now has ${_favoriteListings.length} items');
-      
+      print(
+        'DEBUG: _favoriteListings now has ${_favoriteListings.length} items',
+      );
+
       // Set pagination if available, otherwise use simple logic
       if (result.containsKey('pagination')) {
         _pagination = result['pagination'];
@@ -385,13 +679,42 @@ class MarketplaceController extends ChangeNotifier {
           'hasMore': favoritesData.length == limit,
         };
       }
-      
+
       _setLoading(false);
       notifyListeners();
       print('DEBUG: Finished getFavoriteListings, notified listeners');
-    } catch (e) {
-      print('DEBUG: Error in getFavoriteListings: $e');
+    } catch (e, stackTrace) {
+      print('DEBUG: Error in getFavoriteListings: $e, stackTrace: $stackTrace');
       _setError('Failed to load favorite listings: $e');
+      _setLoading(false);
+    }
+  }
+
+  // Get recently viewed items with timestamps
+  Future<void> getRecentlyViewedItems({
+    int limit = 20,
+    bool refresh = false,
+  }) async {
+    if (_authToken == null) {
+      _setError('Authentication required');
+      return;
+    }
+
+    try {
+      _setLoading(true);
+      _error = null;
+
+      final result = await MarketplaceService.getRecentlyViewedItems(
+        token: _authToken!,
+        limit: limit,
+      );
+
+      _recentlyViewedItems = result['listings'] as List<ListingModel>;
+
+      _setLoading(false);
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to load recently viewed items: $e');
       _setLoading(false);
     }
   }
@@ -415,6 +738,7 @@ class MarketplaceController extends ChangeNotifier {
       await getListingBids(listingId);
 
       _setLoading(false);
+      _notifyUser('Bid placed', 'Your bid was submitted successfully.');
       return true;
     } catch (e) {
       _setError('Failed to place bid: $e');
@@ -504,165 +828,6 @@ class MarketplaceController extends ChangeNotifier {
       return true;
     } catch (e) {
       _setError('Failed to cancel bid: $e');
-      return false;
-    }
-  }
-
-  // OFFER METHODS
-
-  // Make an offer
-  Future<bool> makeOffer(
-    String listingId,
-    Map<String, dynamic> offerData,
-  ) async {
-    if (_authToken == null) {
-      _setError('Authentication required');
-      return false;
-    }
-
-    try {
-      _setLoading(true);
-      _error = null;
-
-      final offer = await MarketplaceService.makeOffer(
-        listingId,
-        offerData,
-        _authToken!,
-      );
-      _offers.insert(0, offer);
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError('Failed to make offer: $e');
-      return false;
-    }
-  }
-
-  // Get offers for a listing
-  Future<void> getListingOffers(
-    String listingId, {
-    int page = 1,
-    int limit = 20,
-    String? status,
-  }) async {
-    if (_authToken == null) {
-      _setError('Authentication required');
-      return;
-    }
-
-    try {
-      _setLoading(true);
-      _error = null;
-
-      final result = await MarketplaceService.getListingOffers(
-        listingId,
-        token: _authToken!,
-        page: page,
-        limit: limit,
-        status: status,
-      );
-      _offers = result['offers'];
-      _pagination = result['pagination'];
-      _setLoading(false);
-    } catch (e) {
-      _setError('Failed to load offers: $e');
-    }
-  }
-
-  // Get user's offers
-  Future<void> getUserOffers({
-    int page = 1,
-    int limit = 20,
-    String? status,
-    bool refresh = false,
-  }) async {
-    if (_authToken == null) {
-      _setError('Authentication required');
-      return;
-    }
-
-    try {
-      _setLoading(true);
-      _error = null;
-
-      final result = await MarketplaceService.getUserOffers(
-        token: _authToken!,
-        page: page,
-        limit: limit,
-        status: status,
-      );
-
-      if (refresh || page == 1) {
-        _offers = result['offers'];
-      } else {
-        _offers.addAll(result['offers']);
-      }
-
-      _pagination = result['pagination'];
-      _setLoading(false);
-    } catch (e) {
-      _setError('Failed to load your offers: $e');
-    }
-  }
-
-  // Accept an offer
-  Future<bool> acceptOffer(String offerId, {String? responseMessage}) async {
-    if (_authToken == null) {
-      _setError('Authentication required');
-      return false;
-    }
-
-    try {
-      _setLoading(true);
-      _error = null;
-
-      await MarketplaceService.acceptOffer(
-        offerId,
-        responseMessage: responseMessage,
-        token: _authToken!,
-      );
-
-      // Update offer status
-      final index = _offers.indexWhere((o) => o.id == offerId);
-      if (index != -1) {
-        _offers[index].status = 'accepted';
-      }
-
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError('Failed to accept offer: $e');
-      return false;
-    }
-  }
-
-  // Reject an offer
-  Future<bool> rejectOffer(String offerId, {String? responseMessage}) async {
-    if (_authToken == null) {
-      _setError('Authentication required');
-      return false;
-    }
-
-    try {
-      _setLoading(true);
-      _error = null;
-
-      await MarketplaceService.rejectOffer(
-        offerId,
-        responseMessage: responseMessage,
-        token: _authToken!,
-      );
-
-      // Update offer status
-      final index = _offers.indexWhere((o) => o.id == offerId);
-      if (index != -1) {
-        _offers[index].status = 'rejected';
-      }
-
-      _setLoading(false);
-      return true;
-    } catch (e) {
-      _setError('Failed to reject offer: $e');
       return false;
     }
   }
@@ -811,6 +976,7 @@ class MarketplaceController extends ChangeNotifier {
       );
       _messages.add(message);
       _setLoading(false);
+      _notifyUser('Offer shared', 'Offer details have been shared in chat.');
       return true;
     } catch (e) {
       _setError('Failed to send offer message: $e');
@@ -824,7 +990,6 @@ class MarketplaceController extends ChangeNotifier {
     _myListings.clear();
     _favoriteListings.clear();
     _bids.clear();
-    _offers.clear();
     _chats.clear();
     _messages.clear();
     _pagination = null;

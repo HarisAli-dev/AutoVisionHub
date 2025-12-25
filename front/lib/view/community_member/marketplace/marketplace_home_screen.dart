@@ -5,11 +5,12 @@ import 'package:front/view/community_member/marketplace/create_listing_screen.da
 import 'package:front/view/community_member/marketplace/all_listings_tab.dart';
 import 'package:front/view/community_member/marketplace/my_listings_tab.dart';
 import 'package:front/view/community_member/marketplace/favorites_tab.dart';
+import 'package:front/view/community_member/marketplace/recently_viewed_tab.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/custom_widgets.dart';
 
-enum MarketplaceView { all, myListings, favorites }
+enum MarketplaceView { all, myListings, favorites, recentlyViewed }
 
 class MarketplaceHomeScreen extends StatefulWidget {
   const MarketplaceHomeScreen({super.key});
@@ -49,7 +50,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _loadCurrentViewData();
@@ -119,6 +120,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
           page: _currentPage,
           refresh: refresh,
         );
+        break;
+      case MarketplaceView.recentlyViewed:
+        await controller.getRecentlyViewedItems(limit: 20, refresh: refresh);
         break;
     }
   }
@@ -204,6 +208,42 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
             icon: Icon(Icons.filter_list, color: AppColors.foregroundColor),
             onPressed: _showFilterDialog,
           ),
+          Consumer<MarketplaceController>(
+            builder: (context, controller, _) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.shopping_cart_outlined,
+                    color: AppColors.foregroundColor,
+                  ),
+                  onPressed: () {
+                    _showCartSheet(context);
+                  },
+                ),
+                if (controller.totalCartItems > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        controller.totalCartItems.toString(),
+                        style: TextStyle(
+                          color: AppColors.titleColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -219,18 +259,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
             fontWeight: FontWeight.normal,
           ),
           tabs: [
-            Tab(
-              icon: Icon(Icons.storefront),
-              text: 'All Items',
-            ),
-            Tab(
-              icon: Icon(Icons.inventory_2),
-              text: 'My Listings',
-            ),
-            Tab(
-              icon: Icon(Icons.favorite),
-              text: 'Favorites',
-            ),
+            Tab(icon: Icon(Icons.storefront), text: 'All Items'),
+            Tab(icon: Icon(Icons.inventory_2), text: 'My Listings'),
+            Tab(icon: Icon(Icons.favorite), text: 'Favorites'),
+            Tab(icon: Icon(Icons.history), text: 'Recent'),
           ],
         ),
       ),
@@ -248,6 +280,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
             onRefresh: _refreshData,
           ),
           FavoritesTab(
+            scrollController: _scrollController,
+            onLoadMore: _loadMoreData,
+            onRefresh: _refreshData,
+          ),
+          RecentlyViewedTab(
             scrollController: _scrollController,
             onLoadMore: _loadMoreData,
             onRefresh: _refreshData,
@@ -272,6 +309,254 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen>
               ),
             )
           : null,
+    );
+  }
+
+  void _showCartSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.cardBorderRadius(context)),
+        ),
+      ),
+      builder: (ctx) {
+        return Consumer<MarketplaceController>(
+          builder: (context, controller, child) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: AppSizes.mediumPadding(context),
+                right: AppSizes.mediumPadding(context),
+                top: AppSizes.mediumPadding(context),
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom +
+                    AppSizes.mediumPadding(context),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Your Cart',
+                        style: TextStyle(
+                          color: AppColors.titleColor,
+                          fontSize: AppSizes.subtitleFontSize(context),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: AppColors.foregroundColor,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: AppSizes.smallSpacing(context)),
+                  if (controller.cartItems.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: AppSizes.largeSpacing(context),
+                      ),
+                      child: Text(
+                        'Your cart is empty',
+                        style: TextStyle(color: AppColors.shadeColor),
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: controller.cartItems.length,
+                        itemBuilder: (context, index) {
+                          final item = controller.cartItems[index];
+                          final qty = controller.getCartQuantity(item.id ?? '');
+                          return Container(
+                            margin: EdgeInsets.only(
+                              bottom: AppSizes.smallSpacing(context),
+                            ),
+                            padding: EdgeInsets.all(
+                              AppSizes.smallPadding(context),
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: AppColors.shadeColor.withOpacity(0.2),
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.inputBorderRadius(context),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                if (item.images.isNotEmpty)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      item.images.first,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                else
+                                  Icon(
+                                    Icons.image,
+                                    size: 40,
+                                    color: AppColors.shadeColor,
+                                  ),
+                                SizedBox(
+                                  width: AppSizes.mediumSpacing(context),
+                                ),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: AppColors.titleColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        'PKR ${item.price.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.remove,
+                                        color: AppColors.foregroundColor,
+                                      ),
+                                      onPressed: () =>
+                                          controller.updateCartQuantity(
+                                            item.id ?? '',
+                                            qty - 1,
+                                          ),
+                                    ),
+                                    Text(
+                                      qty.toString(),
+                                      style: TextStyle(
+                                        color: AppColors.titleColor,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.add,
+                                        color: AppColors.foregroundColor,
+                                      ),
+                                      onPressed: () =>
+                                          controller.updateCartQuantity(
+                                            item.id ?? '',
+                                            qty + 1,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: AppColors.errorColor,
+                                  ),
+                                  onPressed: () =>
+                                      controller.removeFromCart(item.id ?? ''),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  SizedBox(height: AppSizes.mediumSpacing(context)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total',
+                        style: TextStyle(
+                          color: AppColors.titleColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'PKR ${controller.cartTotalAmount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: AppSizes.mediumSpacing(context)),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: controller.cartItems.isEmpty
+                          ? null
+                          : () async {
+                              final ok = await controller.completeOrder();
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  backgroundColor: AppColors.backgroundColor,
+                                  title: Text(
+                                    ok ? 'Order Successful' : 'Order Failed',
+                                    style: TextStyle(
+                                      color: AppColors.titleColor,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    ok
+                                        ? 'Your payment was initiated successfully.'
+                                        : (controller.error ??
+                                              'Something went wrong.'),
+                                    style: TextStyle(
+                                      color: AppColors.foregroundColor,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: Text(
+                                        'OK',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                      style: CustomWidgets.elevatedButtonStyle(context),
+                      child: Text(
+                        'Complete Order',
+                        style: TextStyle(color: AppColors.titleColor),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -330,6 +615,7 @@ class _FilterDialogState extends State<_FilterDialog> {
     'price_low',
     'price_high',
     'most_viewed',
+    'trending',
   ];
 
   @override
@@ -680,6 +966,8 @@ class _FilterDialogState extends State<_FilterDialog> {
         return 'Price: High to Low';
       case 'most_viewed':
         return 'Most Viewed';
+      case 'trending':
+        return 'Trending / Popular';
       default:
         return option;
     }

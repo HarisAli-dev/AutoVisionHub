@@ -25,6 +25,7 @@ class CustomWidgets {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: TextFormField(
+              cursorColor: borderColor,
               keyboardType: isphone
                   ? TextInputType.phone
                   : isnumber

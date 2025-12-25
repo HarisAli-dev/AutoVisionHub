@@ -21,7 +21,6 @@ class BookingModel {
       bookingDate = DateTime.now(),
       createdAt = null,
       updatedAt = null;
-      
 
   BookingModel({
     this.userId,
@@ -52,16 +51,22 @@ class BookingModel {
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
-      userId: json['userId'] as String,
-      userName: json['userName'] as String,
-      userEmail: json['userEmail'] as String,
-      userPhoneNumber: json['userPhoneNumber'] as String,
-      eventId: json['eventId'] as String,
-      bookingType: json['bookingType'] as String,
-      bookingDate: DateTime.parse(json['bookingDate']),
-      ticketOrSeatNumber: json['ticketOrSeatNumber'] as int,
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      userId: json['userId'] as String?,
+      userName: json['userName'] as String?,
+      userEmail: json['userEmail'] as String?,
+      userPhoneNumber: json['userPhoneNumber'] as String?,
+      eventId: json['eventId'] as String?,
+      bookingType: json['bookingType'] as String? ?? '',
+      bookingDate: json['bookingDate'] != null
+          ? DateTime.parse(json['bookingDate'])
+          : null,
+      ticketOrSeatNumber: json['ticketOrSeatNumber'] as int? ?? 0,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
     );
   }
 }

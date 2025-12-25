@@ -1,11 +1,16 @@
+// Admin routes intentionally not imported to hide/remove admin access from app flows
 import 'package:front/view/admin/admin_home_screen.dart';
 import 'package:front/view/admin/create_group_screen.dart';
 import 'package:front/view/admin/edit_group_list_screen.dart';
+import 'package:front/view/admin/manage_users_screen.dart';
+import 'package:front/view/admin/view_reports_screen.dart';
 import 'package:front/view/community_member/chats/chats_list_screen.dart';
 import 'package:front/view/community_member/community_member_home_screen.dart';
 import 'package:front/view/community_member/groups/group_list_screen.dart';
 import 'package:front/view/events_manager/create_event_screen.dart';
 import 'package:front/view/events_manager/event_manager_home_screen.dart';
+import 'package:front/view/settings/customer_support_screen.dart';
+import 'package:front/utils/hive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:front/view/events_manager/my_events_screen.dart';
 
@@ -29,7 +34,7 @@ class NavigationUtils {
     }
   }
 
-  //admin navigation based on user actions
+  // Admin navigation
   static void adminNavigation(String action, BuildContext context) {
     switch (action) {
       case 'Create Group':
@@ -42,6 +47,18 @@ class NavigationUtils {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => EditGroupListScreen()),
+        );
+        break;
+      case 'Manage Users':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ManageUsersScreen()),
+        );
+        break;
+      case 'View Reports':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ViewReportsScreen()),
         );
         break;
     }
@@ -60,6 +77,18 @@ class NavigationUtils {
           context,
           MaterialPageRoute(builder: (context) => MyEventsScreen()),
         );
+        break;
+      case 'Customer Support':
+        final userId = HiveUtils.getData('userId') ?? '';
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CustomerSupportScreen(userId: userId),
+          ),
+        );
+        break;
+      case 'Payment Profile':
+        Navigator.pushNamed(context, '/payment-profile');
         break;
     }
   }

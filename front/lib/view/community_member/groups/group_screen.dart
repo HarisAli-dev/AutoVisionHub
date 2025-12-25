@@ -13,7 +13,7 @@ import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:front/providers/unified_audio_provider.dart';
 import 'package:front/providers/poll_provider.dart';
@@ -961,7 +961,7 @@ class _GroupScreenState extends State<GroupScreen> {
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final localTime = message.createdAt.toLocal();
-                      final time = DateFormat.jm().format(localTime);
+                      final time = TimeUtils.formatTimePKT(message.createdAt);
 
                       // Show date header if this is first message or date changed from previous message
                       final showDateHeader =

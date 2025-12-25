@@ -71,6 +71,9 @@ const sendNotificationToUser = async (userId, notification, data = {}) => {
         ...data,
         click_action: data.route || '',
         sound: 'default',
+        // Include sender info for custom notification display
+        senderName: data.senderName || '',
+        profileImageUrl: notification.imageUrl || '',
       },
       android: {
         notification: {
@@ -78,6 +81,10 @@ const sendNotificationToUser = async (userId, notification, data = {}) => {
           sound: 'default',
           priority: 'high',
           defaultSound: true,
+          // Add image URL for Android
+          imageUrl: notification.imageUrl && notification.imageUrl.startsWith('http') 
+            ? notification.imageUrl 
+            : undefined,
         },
       },
       apns: {
@@ -87,13 +94,16 @@ const sendNotificationToUser = async (userId, notification, data = {}) => {
             badge: 1,
           },
         },
+        fcm_options: {
+          // Add image for iOS
+          image: notification.imageUrl && notification.imageUrl.startsWith('http') 
+            ? notification.imageUrl 
+            : undefined,
+        },
       },
     };
 
-    // Only add imageUrl if it's a valid URL
-    if (notification.imageUrl && notification.imageUrl.startsWith('http')) {
-      messagePayload.notification.imageUrl = notification.imageUrl;
-    }
+    // Only add imageUrl if it's a valid URL (removed - handled in payload above)
 
     const response = await admin.messaging().send(messagePayload);
     console.log('Successfully sent message:', response);

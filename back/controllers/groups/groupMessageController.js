@@ -22,6 +22,12 @@ const sendMessage = async (req, res) => {
     const senderId = req.user.id;
     const senderName = req.user.name;
 
+    // Check if user is banned
+    const sender = await User.findById(senderId);
+    if (sender && sender.isBanned) {
+      return res.status(403).json({ error: 'Your account has been banned from sending messages in groups' });
+    }
+
     // Validate group exists and user is a participant
     const group = await Group.findById(groupId);
     if (!group) {
@@ -65,9 +71,6 @@ const sendMessage = async (req, res) => {
     });
 
     await group.save();
-
-    // Get sender information for notifications
-    const sender = await User.findById(senderId);
 
     // Emit socket events for real-time updates
     const io = getIO();
@@ -164,11 +167,28 @@ const deleteGroupMessage = async (req, res) => {
     const { messageId } = req.params;
     const userId = req.user.id;
 
-    const message = await GroupMessage.findByIdAndDelete(messageId);
+    const message = await GroupMessage.findById(messageId);
     if (!message) {
       return res.status(404).json({ error: 'Message not found' });
     }
-    } catch (error) {
+
+    // Check if user is the sender
+    if (message.senderId.toString() !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own messages' });
+    }
+
+    // Delete the message
+    await GroupMessage.findByIdAndDelete(messageId);
+
+    // Emit socket event for real-time deletion
+    const io = getIO();
+    io.to(message.groupId.toString()).emit('groupMessageDeleted', {
+      messageId,
+      groupId: message.groupId
+    });
+
+    res.status(200).json({ success: true, message: 'Message deleted successfully' });
+  } catch (error) {
     console.error('Error deleting group message:', error);
     res.status(500).json({ error: 'Failed to delete message' });
   }

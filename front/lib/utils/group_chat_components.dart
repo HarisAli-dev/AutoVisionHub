@@ -11,6 +11,7 @@ import 'package:front/services/video_player_service.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/utils/hive_utils.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -475,7 +476,7 @@ class ChatComponents {
     } else if (isSameDay(localDate, yesterday)) {
       dateText = 'Yesterday';
     } else {
-      dateText = DateFormat('MMMM d, y').format(localDate);
+      dateText = TimeUtils.formatFullDatePKT(date);
     }
 
     return Container(

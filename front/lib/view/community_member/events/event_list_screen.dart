@@ -4,6 +4,7 @@ import 'package:front/model/events/event_model.dart';
 import 'package:front/model/events/seats_model.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
+import 'package:front/utils/time_utils.dart';
 import 'package:front/view/community_member/events/view_event_screen.dart';
 
 class EventListScreen extends StatefulWidget {
@@ -15,69 +16,76 @@ class EventListScreen extends StatefulWidget {
 
 class _EventListScreenState extends State<EventListScreen> {
   List<EventModel> events = [];
+  late Future<List<EventModel>> _eventsFuture;
 
   @override
   void initState() {
     super.initState();
-    fetchEvents();
+    _eventsFuture = fetchEvents();
   }
 
-  void fetchEvents() {
-    EventController.fetchAllEvents().then((events) {
+  Future<List<EventModel>> fetchEvents() async {
+    final fetchedEvents = await EventController.fetchAllEvents();
+    if (mounted) {
       setState(() {
-        this.events = events;
+        events = fetchedEvents;
+        _eventsFuture = Future.value(fetchedEvents);
       });
-    });
+    }
+    return fetchedEvents;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-      body: FutureBuilder(
-        future: _fetchEventsForFuture(),
-        initialData: events,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            final events = snapshot.data ?? [];
-            if (events.isEmpty) {
-              return Center(
-                child: Text(
-                  'No events available',
-                  style: TextStyle(
-                    fontSize: AppSizes.bodyFontSize(context),
-                    color: AppColors.shadeColor,
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: AppColors.backgroundColor,
+        onRefresh: () async {
+          await fetchEvents();
+        },
+        child: FutureBuilder<List<EventModel>>(
+          future: _eventsFuture,
+          initialData: events,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else {
+              final events = snapshot.data ?? [];
+              if (events.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No events available',
+                    style: TextStyle(
+                      fontSize: AppSizes.bodyFontSize(context),
+                      color: AppColors.shadeColor,
+                    ),
                   ),
-                ),
+                );
+              }
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding:
+                    EdgeInsets.all(AppSizes.getScreenWidth(context) * 0.04),
+                itemCount: events.length,
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  return GestureDetector(
+                    onTap: () {
+                      _navigateToViewEvent(event);
+                    },
+                    child: _buildEventCard(event),
+                  );
+                },
               );
             }
-            return ListView.builder(
-              padding: EdgeInsets.all(AppSizes.getScreenWidth(context) * 0.04),
-              itemCount: events.length,
-              itemBuilder: (context, index) {
-                final event = events[index];
-                return GestureDetector(
-                  onTap: () {
-                    _navigateToViewEvent(event);
-                  },
-                  child: _buildEventCard(event),
-                );
-              },
-            );
-          }
-        },
+          },
+        ),
       ),
     );
-  }
-
-  Future<List<EventModel>> _fetchEventsForFuture() async {
-    // TODO: Implement actual event fetching
-    // return await EventController.fetchAllEvents();
-    return events;
   }
 
   Widget _buildEventCard(EventModel event) {
@@ -122,12 +130,12 @@ class _EventListScreenState extends State<EventListScreen> {
             // Event details
             _buildEventDetail(
               Icons.calendar_today,
-              '${event.eventDateTime.day}/${event.eventDateTime.month}/${event.eventDateTime.year}',
+              TimeUtils.formatDatePKT(event.eventDateTime),
             ),
             SizedBox(height: AppSizes.getScreenHeight(context) * 0.005),
             _buildEventDetail(
               Icons.access_time,
-              '${event.eventDateTime.hour.toString().padLeft(2, '0')}:${event.eventDateTime.minute.toString().padLeft(2, '0')}',
+              TimeUtils.formatTimePKT(event.eventDateTime),
             ),
             SizedBox(height: AppSizes.getScreenHeight(context) * 0.005),
             _buildEventDetail(Icons.location_on, event.eventLocation),

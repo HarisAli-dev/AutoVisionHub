@@ -32,6 +32,8 @@ class SocketService {
   Function(dynamic)? onViewerCountChanged;
   Function(dynamic)? onUserJoinedStream;
   Function(dynamic)? onUserLeftStream;
+  Function(dynamic)? onNewLiveStreamChat;
+  Function(List<dynamic>)? onChatHistory;
 
   // Current live stream state
   String? _currentLiveStreamRoom;
@@ -194,6 +196,23 @@ class SocketService {
         onUserLeftStream!(data);
       }
     });
+
+    // Live stream chat events
+    socket.on('new_live_stream_chat', (data) {
+      debugPrint('New live stream chat: $data');
+      if (onNewLiveStreamChat != null) {
+        onNewLiveStreamChat!(data);
+      }
+    });
+
+    socket.on('chat_history', (data) {
+      debugPrint(
+        'Chat history received: ${data['messages']?.length ?? 0} messages',
+      );
+      if (onChatHistory != null && data['messages'] != null) {
+        onChatHistory!(data['messages']);
+      }
+    });
   }
 
   // Join a chat room
@@ -285,6 +304,21 @@ class SocketService {
   // ========== LIVE STREAMING METHODS ==========
 
   /// Join a live streaming room
+  void joinLiveStream(String roomId, String userId, String userName) {
+    if (_isConnected) {
+      _currentLiveStreamRoom = roomId;
+      socket.emit('join_live_stream', {
+        'roomId': roomId,
+        'userId': userId,
+        'userName': userName,
+      });
+      debugPrint('Joined live stream room: $roomId');
+    } else {
+      debugPrint('Cannot join live stream room: socket not connected');
+    }
+  }
+
+  /// Join a live streaming room (legacy method kept for compatibility)
   void joinLiveStreamRoom(String roomId) {
     if (_isConnected && _userId != null) {
       _currentLiveStreamRoom = roomId;
@@ -354,12 +388,21 @@ class SocketService {
     Function(dynamic)? onViewerCountChanged,
     Function(dynamic)? onUserJoinedStream,
     Function(dynamic)? onUserLeftStream,
+    Function(dynamic)? onNewLiveStreamChat,
+    Function(List<dynamic>)? onChatHistory,
   }) {
-    this.onLiveStreamEnded = onLiveStreamEnded;
-    this.onRecordingStatusChanged = onRecordingStatusChanged;
-    this.onViewerCountChanged = onViewerCountChanged;
-    this.onUserJoinedStream = onUserJoinedStream;
-    this.onUserLeftStream = onUserLeftStream;
+    // Only update callbacks that are explicitly provided (not null)
+    if (onLiveStreamEnded != null) this.onLiveStreamEnded = onLiveStreamEnded;
+    if (onRecordingStatusChanged != null)
+      this.onRecordingStatusChanged = onRecordingStatusChanged;
+    if (onViewerCountChanged != null)
+      this.onViewerCountChanged = onViewerCountChanged;
+    if (onUserJoinedStream != null)
+      this.onUserJoinedStream = onUserJoinedStream;
+    if (onUserLeftStream != null) this.onUserLeftStream = onUserLeftStream;
+    if (onNewLiveStreamChat != null)
+      this.onNewLiveStreamChat = onNewLiveStreamChat;
+    if (onChatHistory != null) this.onChatHistory = onChatHistory;
   }
 
   /// Clear live streaming callbacks
@@ -369,6 +412,79 @@ class SocketService {
     onViewerCountChanged = null;
     onUserJoinedStream = null;
     onUserLeftStream = null;
+    onNewLiveStreamChat = null;
+    onChatHistory = null;
+  }
+
+  /// Send a chat message in live stream
+  void sendLiveStreamChat({
+    required String roomId,
+    required String userId,
+    required String userName,
+    required String message,
+    bool isBot = false,
+  }) {
+    debugPrint('\n=== SENDING CHAT MESSAGE (FRONTEND) ===');
+    debugPrint('Room ID: $roomId');
+    debugPrint('Message: $message');
+    debugPrint('Is Bot: $isBot');
+    debugPrint('Connected: $_isConnected');
+
+    if (_isConnected) {
+      final payload = {
+        'roomId': roomId,
+        'userId': userId,
+        'userName': userName,
+        'message': message,
+        'isBot': isBot,
+      };
+
+      debugPrint('Payload: $payload');
+      socket.emit('send_live_stream_chat', payload);
+      debugPrint('Message emitted successfully');
+    } else {
+      debugPrint('❌ Cannot send: socket not connected');
+    }
+  }
+
+  /// Send a chat message in live stream (legacy method kept for compatibility)
+  void sendLiveStreamChatMessage({
+    required String roomId,
+    required String message,
+    bool isBot = false,
+  }) {
+    debugPrint('\n=== SENDING CHAT MESSAGE (FRONTEND) ===');
+    debugPrint('Room ID: $roomId');
+    debugPrint('Message: $message');
+    debugPrint('Is Bot: $isBot');
+    debugPrint('Connected: $_isConnected');
+    debugPrint('User ID: $_userId');
+
+    if (_isConnected && _userId != null) {
+      final payload = {
+        'roomId': roomId,
+        'userId': _userId,
+        'userName': HiveUtils.getData('name') ?? 'Unknown User',
+        'message': message,
+        'isBot': isBot,
+      };
+
+      debugPrint('Payload: $payload');
+      socket.emit('send_live_stream_chat', payload);
+      debugPrint('Message emitted successfully');
+    } else {
+      debugPrint('❌ Cannot send: socket=${_isConnected}, userId=$_userId');
+    }
+  }
+
+  /// Request chat history for a live stream room
+  void requestLiveStreamChatHistory(String roomId) {
+    if (_isConnected) {
+      socket.emit('get_chat_history', {'roomId': roomId});
+      debugPrint('Requested chat history for room: $roomId');
+    } else {
+      debugPrint('Cannot request chat history: socket not connected');
+    }
   }
 
   /// Get current live stream room

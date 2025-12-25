@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +10,8 @@ import 'package:front/firebase_options.dart';
 import 'package:front/utils/hive_utils.dart';
 import 'package:front/services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 class FirebaseApi {
   // Firebase Messaging instance
@@ -17,6 +21,37 @@ class FirebaseApi {
   // Local notifications plugin
   static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+
+  static AndroidNotificationDetails _getAndroidNotificationDetails({
+    String? largeIconPath,
+    StyleInformation? styleInformation,
+  }) {
+    return AndroidNotificationDetails(
+      'autovisionhub_channel',
+      'AutoVisionHub Notifications',
+      channelDescription: 'Notifications for messages and updates',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon:
+          '@mipmap/ic_launcher', // Small icon (left side - must be drawable resource)
+      color: const Color(0xFFFF6B35),
+      largeIcon: largeIconPath != null
+          ? FilePathAndroidBitmap(largeIconPath)
+          : null,
+      styleInformation: styleInformation,
+      // Show large icon as avatar (makes it circular and prominent)
+      showWhen: true,
+      // This makes the large icon appear in place of the small app icon visually
+      visibility: NotificationVisibility.public,
+    );
+  }
+
+  static const DarwinNotificationDetails _iosNotificationDetails =
+      DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
   // Navigation key for handling navigation from notifications
   static final GlobalKey<NavigatorState> navigatorKey =
@@ -123,6 +158,25 @@ class FirebaseApi {
         ?.createNotificationChannel(channel);
   }
 
+  static FlutterLocalNotificationsPlugin get localNotificationsPlugin =>
+      _localNotifications;
+
+  static NotificationDetails _getNotificationDetails({
+    String? largeIconPath,
+    StyleInformation? styleInformation,
+  }) {
+    return NotificationDetails(
+      android: _getAndroidNotificationDetails(
+        largeIconPath: largeIconPath,
+        styleInformation: styleInformation,
+      ),
+      iOS: _iosNotificationDetails,
+    );
+  }
+
+  static NotificationDetails get defaultNotificationDetails =>
+      _getNotificationDetails();
+
   /// Configure Firebase Messaging
   static Future<void> _configureFirebaseMessaging() async {
     // Handle foreground messages
@@ -212,34 +266,46 @@ class FirebaseApi {
   /// Show local notification
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     final Map<String, dynamic> data = message.data;
+    final String title = message.notification?.title ?? 'AutoVisionHub';
+    final String body = message.notification?.body ?? 'You have a new message';
 
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-          'autovisionhub_channel',
-          'AutoVisionHub Notifications',
-          channelDescription: 'Notifications for messages and updates',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          color: Color(0xFFFF6B35), // Your app's primary color
-        );
+    // Get sender info from data payload (not from notification object)
+    final String? senderName = data['senderName'];
+    final String? profileImageUrl = data['profileImageUrl'];
 
-    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
+    // Download or create icon
+    String? largeIconPath;
+    if (profileImageUrl != null &&
+        profileImageUrl.isNotEmpty &&
+        profileImageUrl.startsWith('http')) {
+      largeIconPath = await _downloadAndSaveProfileImage(profileImageUrl);
+    } else if (senderName != null && senderName.isNotEmpty) {
+      largeIconPath = await _createLetterIcon(senderName[0].toUpperCase());
+    }
+
+    // Use MessagingStyleInformation for chat-like appearance with profile picture
+    final Person sender = Person(
+      name: title,
+      icon: largeIconPath != null
+          ? BitmapFilePathAndroidIcon(largeIconPath)
+          : null,
     );
 
-    const NotificationDetails details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
+    final MessagingStyleInformation messagingStyle = MessagingStyleInformation(
+      sender,
+      conversationTitle:
+          null, // Don't show conversation title to avoid duplication
+      messages: [Message(body, DateTime.now(), sender)],
     );
 
     await _localNotifications.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      message.notification?.title ?? 'AutoVisionHub',
-      message.notification?.body ?? 'You have a new message',
-      details,
+      title,
+      body,
+      _getNotificationDetails(
+        largeIconPath: largeIconPath,
+        styleInformation: messagingStyle,
+      ),
       payload: jsonEncode(data),
     );
   }
@@ -247,6 +313,61 @@ class FirebaseApi {
   /// Navigate to appropriate screen based on message data
   static void _navigateToScreen(RemoteMessage message) {
     _navigateFromData(message.data);
+  }
+
+  /// Download and save profile image for notification icon
+  static Future<String?> _downloadAndSaveProfileImage(String imageUrl) async {
+    try {
+      if (kIsWeb) return null;
+
+      final http.Response response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode != 200) return null;
+
+      final Directory tempDir = await getTemporaryDirectory();
+      final String fileName =
+          'notification_${DateTime.now().millisecondsSinceEpoch}.png';
+      final File file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsBytes(response.bodyBytes);
+      return file.path;
+    } catch (e) {
+      print('Error downloading profile image: $e');
+      return null;
+    }
+  }
+
+  /// Create a letter icon for notification
+  static Future<String?> _createLetterIcon(String letter) async {
+    try {
+      if (kIsWeb) return null;
+
+      // For Android, we'll rely on the app icon with the letter in the title
+      // Creating dynamic bitmap icons requires platform-specific code
+      // which is complex for this use case
+      return null;
+    } catch (e) {
+      print('Error creating letter icon: $e');
+      return null;
+    }
+  }
+
+  static Future<void> showSimpleNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (kIsWeb) {
+      debugPrint('[FirebaseApi] Notification skipped on web: $title');
+      return;
+    }
+
+    await _localNotifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      defaultNotificationDetails,
+      payload: payload,
+    );
   }
 
   /// Navigate based on data

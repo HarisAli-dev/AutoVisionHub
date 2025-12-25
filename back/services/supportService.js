@@ -1,8 +1,110 @@
+require('dotenv').config();
 const { SupportConversation, SupportTicket } = require('../models/supportModel');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Initialize Gemini AI (only if API key is valid)
+let genAI = null;
+let model = null;
+
+const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+
+if (apiKey && apiKey !== 'YOUR_API_KEY' && apiKey.length > 20) {
+  try {
+    genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    console.log('✅ Gemini AI initialized successfully with model: gemini-2.0-flash');
+  } catch (error) {
+    console.error('Failed to initialize Gemini AI:', error.message);
+  }
+} else {
+  console.warn('⚠️  Gemini API key not configured. Using fallback responses.');
+  console.warn('   API key length:', apiKey ? apiKey.length : 0);
+  console.warn('   Get your API key from: https://aistudio.google.com/app/apikey');
+}
 
 const supportService = {
   // Generate AI response based on user message
   generateAIResponse: async ({ userMessage, userId, context, userHistory }) => {
+    try {
+      // If Gemini is not available, use fallback immediately
+      if (!model) {
+        console.log('Gemini AI not available, using fallback responses');
+        return await supportService.generateFallbackResponse(userMessage);
+      }
+
+      // Get conversation history for context
+      const recentConversations = await SupportConversation.find({ userId })
+        .sort({ timestamp: -1 })
+        .limit(10)
+        .select('userMessage aiResponse');
+
+      // Get all indexed conversations for training context
+      const allConversations = await SupportConversation.find({})
+        .sort({ timestamp: -1 })
+        .limit(100)
+        .select('userMessage aiResponse context');
+
+      // Build context for Gemini
+      const appContext = `You are a helpful customer support AI assistant for AutoVisionHub, a comprehensive automotive community platform. 
+
+AutoVisionHub Features:
+- Event Management: Users can create, manage, and attend automotive events with ticket booking
+- Live Streaming: Events can be live-streamed using Zego Cloud integration
+- Groups & Communities: Users can join groups and participate in discussions
+- Marketplace: Buy/sell automotive parts and vehicles
+- Discussion Threads: Community members can create and participate in discussion threads
+- User Profiles: Manage profiles, settings, and payment information
+- Admin Features: Admins can manage users, groups, events, and view reports
+
+Common Support Topics:
+- Account management (login, password reset, profile updates)
+- Event creation and management
+- Live streaming setup and issues
+- Group management and permissions
+- Marketplace listings and transactions
+- Payment and billing
+- Technical issues and troubleshooting
+
+Previous App Conversations (for learning):
+${allConversations.map(c => `User: ${c.userMessage}\nAssistant: ${c.aiResponse}`).join('\n---\n')}
+
+User's Recent Conversation History:
+${recentConversations.map(c => `User: ${c.userMessage}\nAssistant: ${c.aiResponse}`).join('\n')}
+
+Provide helpful, accurate, and friendly responses. If you don't know something specific, be honest and offer to escalate to human support.`;
+
+      // Generate response using Gemini
+      const chat = model.startChat({
+        history: [
+          {
+            role: 'user',
+            parts: [{ text: appContext }],
+          },
+          {
+            role: 'model',
+            parts: [{ text: 'I understand. I am now the AutoVisionHub support assistant with full knowledge of the platform features and previous conversations. I will provide helpful, accurate responses based on this context.' }],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.7,
+        },
+      });
+
+      const result = await chat.sendMessage(userMessage);
+      const response = result.response.text();
+
+      return response;
+
+    } catch (error) {
+      console.error('Error generating Gemini AI response:', error);
+      // Fallback to pattern-based responses
+      return await supportService.generateFallbackResponse(userMessage);
+    }
+  },
+
+  // Fallback response generator (pattern-based)
+  generateFallbackResponse: async (userMessage) => {
     try {
       // Normalize user message for analysis
       const normalizedMessage = userMessage.toLowerCase().trim();
@@ -125,7 +227,7 @@ const supportService = {
       return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
       
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      console.error('Error generating fallback response:', error);
       return "I apologize, but I'm having trouble processing your request right now. Please try again, or if the issue persists, I can connect you with a human support agent.";
     }
   },

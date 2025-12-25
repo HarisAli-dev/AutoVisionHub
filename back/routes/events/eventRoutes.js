@@ -17,6 +17,8 @@ router.put('/updateEventWithTickets/:id', eventController.updateEventWithTickets
 router.post('/bookTickets/:eventId', eventController.bookTickets);
 router.post('/bookSeat/:eventId', eventController.bookSeat);
 router.get('/getMyEvents', eventController.getMyEvents);
+router.get('/getEventBookings/:eventId', eventController.getEventBookings);
+router.delete('/deleteBooking/:eventId', eventController.deleteBooking);
 router.delete('/:id', eventController.deleteEvent);
 
 module.exports = router;

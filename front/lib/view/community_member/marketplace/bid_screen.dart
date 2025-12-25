@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:front/controller/marketplace/marketplace_controller.dart';
 import 'package:front/model/marketplace/listing_model.dart';
+import 'package:front/view/community_member/marketplace/checkout_screen.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/custom_widgets.dart';
@@ -71,7 +72,7 @@ class _BidScreenState extends State<BidScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Auction Info Card
+            // Current Bid Info
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(AppSizes.largePadding(context)),
@@ -98,14 +99,6 @@ class _BidScreenState extends State<BidScreen> {
                       color: AppColors.primary,
                       fontSize: AppSizes.titleFontSize(context) * 1.5,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: AppSizes.smallSpacing(context)),
-                  Text(
-                    'by @user123 • 2 hours ago',
-                    style: TextStyle(
-                      color: AppColors.shadeColor,
-                      fontSize: AppSizes.smallFontSize(context),
                     ),
                   ),
                 ],
@@ -147,9 +140,9 @@ class _BidScreenState extends State<BidScreen> {
               ),
             ),
 
-            SizedBox(height: AppSizes.largeSpacing(context) * 1.5),
+            SizedBox(height: AppSizes.largeSpacing(context)),
 
-            // Bid Input with Increment Buttons
+            // Bid Input
             Text(
               'Your Bid',
               style: TextStyle(
@@ -160,80 +153,22 @@ class _BidScreenState extends State<BidScreen> {
             ),
             SizedBox(height: AppSizes.mediumSpacing(context)),
 
-            // Bid input with increment/decrement buttons
-            Row(
-              children: [
-                // Decrement button
-                Container(
-                  height: AppSizes.buttonHeight(context),
-                  width: AppSizes.buttonHeight(context),
-                  child: ElevatedButton(
-                    onPressed: () => _adjustBid(false),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary.withOpacity(0.2),
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.inputBorderRadius(context),
-                        ),
-                        side: BorderSide(color: AppColors.primary),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.remove,
-                      color: AppColors.primary,
-                      size: AppSizes.mediumIconSize(context),
-                    ),
-                  ),
-                ),
-                SizedBox(width: AppSizes.smallSpacing(context)),
-
-                // Bid input field
-                Expanded(
-                  child: CustomWidgets.customTextFormField(
-                    controller: _bidController,
-                    label: 'Bid Amount (PKR)',
-                    borderColor: AppColors.primary,
-                    textColor: AppColors.foregroundColor,
-                    fontsize: AppSizes.inputFontSize(context),
-                    isnumber: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a bid amount';
-                      }
-                      if (double.tryParse(value) == null) {
-                        return 'Please enter a valid amount';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                SizedBox(width: AppSizes.smallSpacing(context)),
-
-                // Increment button
-                Container(
-                  height: AppSizes.buttonHeight(context),
-                  width: AppSizes.buttonHeight(context),
-                  child: ElevatedButton(
-                    onPressed: () => _adjustBid(true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary.withOpacity(0.2),
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.inputBorderRadius(context),
-                        ),
-                        side: BorderSide(color: AppColors.primary),
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.add,
-                      color: AppColors.primary,
-                      size: AppSizes.mediumIconSize(context),
-                    ),
-                  ),
-                ),
-              ],
+            CustomWidgets.customTextFormField(
+              controller: _bidController,
+              label: 'Bid Amount (PKR)',
+              borderColor: AppColors.primary,
+              textColor: AppColors.foregroundColor,
+              fontsize: AppSizes.inputFontSize(context),
+              isnumber: true,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a bid amount';
+                }
+                if (double.tryParse(value) == null) {
+                  return 'Please enter a valid amount';
+                }
+                return null;
+              },
             ),
 
             SizedBox(height: AppSizes.smallSpacing(context)),
@@ -246,169 +181,10 @@ class _BidScreenState extends State<BidScreen> {
                 Expanded(child: _buildQuickIncrementButton('+5K', 5000)),
                 SizedBox(width: AppSizes.smallSpacing(context)),
                 Expanded(child: _buildQuickIncrementButton('+10K', 10000)),
-                SizedBox(width: AppSizes.smallSpacing(context)),
-                Expanded(child: _buildQuickIncrementButton('+50K', 50000)),
               ],
             ),
 
             SizedBox(height: AppSizes.largeSpacing(context)),
-
-            // Show current bid increment info
-            Container(
-              padding: EdgeInsets.all(AppSizes.mediumPadding(context)),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(
-                  AppSizes.cardBorderRadius(context),
-                ),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: AppColors.primary,
-                    size: AppSizes.mediumIconSize(context),
-                  ),
-                  SizedBox(width: AppSizes.smallSpacing(context)),
-                  Expanded(
-                    child: Text(
-                      'Minimum increment: PKR ${(widget.listing.bidIncrement ?? 1000).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: AppSizes.smallFontSize(context),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: AppSizes.largeSpacing(context) * 1.5),
-
-            // Bid History
-            Text(
-              'Bid History',
-              style: TextStyle(
-                color: AppColors.titleColor,
-                fontSize: AppSizes.subtitleFontSize(context),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: AppSizes.mediumSpacing(context)),
-
-            Consumer<MarketplaceController>(
-              builder: (context, controller, child) {
-                if (controller.isLoading) {
-                  return Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                }
-
-                if (controller.bids.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No bids yet',
-                      style: TextStyle(
-                        color: AppColors.shadeColor,
-                        fontSize: AppSizes.inputFontSize(context),
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: controller.bids.length,
-                  itemBuilder: (context, index) {
-                    final bid = controller.bids[index];
-                    return Container(
-                      margin: EdgeInsets.only(
-                        bottom: AppSizes.smallSpacing(context),
-                      ),
-                      padding: EdgeInsets.all(AppSizes.smallPadding(context)),
-                      decoration: BoxDecoration(
-                        color: AppColors.backgroundColor,
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.cardBorderRadius(context),
-                        ),
-                        border: bid.isWinning
-                            ? Border.all(color: AppColors.primary, width: 2)
-                            : Border.all(color: AppColors.shadeColor),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: AppSizes.mediumIconSize(context),
-                            backgroundColor: bid.isWinning
-                                ? AppColors.primary
-                                : AppColors.shadeColor,
-                            child: Text(
-                              bid.bidder?.name.isNotEmpty == true
-                                  ? bid.bidder!.name[0].toUpperCase()
-                                  : 'B',
-                              style: TextStyle(
-                                color: AppColors.titleColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: AppSizes.inputFontSize(context),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: AppSizes.smallSpacing(context)),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  bid.bidder?.name ?? 'Anonymous',
-                                  style: TextStyle(
-                                    color: AppColors.titleColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: AppSizes.inputFontSize(context),
-                                  ),
-                                ),
-                                Text(
-                                  bid.timeAgo,
-                                  style: TextStyle(
-                                    color: AppColors.shadeColor,
-                                    fontSize: AppSizes.smallFontSize(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                bid.formattedAmount,
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: AppSizes.inputFontSize(context),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              if (bid.isWinning)
-                                Text(
-                                  'Winning',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: AppSizes.smallFontSize(context),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-
-            SizedBox(height: AppSizes.largeSpacing(context) * 1.5),
 
             // Place Bid Button
             SizedBox(
@@ -436,14 +212,86 @@ class _BidScreenState extends State<BidScreen> {
 
             SizedBox(height: AppSizes.mediumSpacing(context)),
 
-            // Terms and Conditions
-            Text(
-              'By placing a bid, you agree to the terms and conditions. If you win the auction, you are obligated to complete the purchase.',
-              style: TextStyle(
-                color: AppColors.shadeColor,
-                fontSize: AppSizes.smallFontSize(context),
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: AppColors.shadeColor)),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSizes.mediumPadding(context),
+                  ),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: AppColors.shadeColor,
+                      fontSize: AppSizes.bodyFontSize(context),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: AppColors.shadeColor)),
+              ],
+            ),
+
+            SizedBox(height: AppSizes.mediumSpacing(context)),
+
+            // Buy Now Button
+            SizedBox(
+              width: double.infinity,
+              height: AppSizes.buttonHeight(context),
+              child: OutlinedButton.icon(
+                onPressed: _showBuyNowConfirmation,
+                icon: Icon(Icons.shopping_bag, color: AppColors.primary),
+                label: Text(
+                  'Buy Now (Skip Bidding)',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: AppSizes.inputFontSize(context),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.primary, width: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppSizes.inputBorderRadius(context),
+                    ),
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: AppSizes.largeSpacing(context)),
+
+            // Info note
+            Container(
+              padding: EdgeInsets.all(AppSizes.mediumPadding(context)),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(
+                  AppSizes.cardBorderRadius(context),
+                ),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.primary,
+                    size: AppSizes.mediumIconSize(context),
+                  ),
+                  SizedBox(width: AppSizes.smallSpacing(context)),
+                  Expanded(
+                    child: Text(
+                      'Buy Now will charge 10% more than the item price to skip the auction process.',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: AppSizes.smallFontSize(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -451,23 +299,195 @@ class _BidScreenState extends State<BidScreen> {
     );
   }
 
-  void _adjustBid(bool increment) {
-    final currentBid = double.tryParse(_bidController.text) ?? 0;
-    final bidIncrement = widget.listing.bidIncrement ?? 1000;
+  void _showBuyNowConfirmation() {
+    final itemPrice = widget.listing.price;
+    final buyNowPrice = itemPrice * 1.1; // 10% more than item price
 
-    final newBid = increment
-        ? currentBid + bidIncrement
-        : currentBid - bidIncrement;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              AppSizes.cardBorderRadius(context),
+            ),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.shopping_bag,
+                color: AppColors.primary,
+                size: AppSizes.mediumIconSize(context),
+              ),
+              SizedBox(width: AppSizes.smallSpacing(context)),
+              Expanded(
+                child: Text(
+                  'Buy Now Confirmation',
+                  style: TextStyle(
+                    color: AppColors.titleColor,
+                    fontSize: AppSizes.subtitleFontSize(context),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You are about to purchase this item instantly, skipping the auction process.',
+                style: TextStyle(
+                  color: AppColors.foregroundColor,
+                  fontSize: AppSizes.bodyFontSize(context),
+                ),
+              ),
+              SizedBox(height: AppSizes.mediumSpacing(context)),
+              Container(
+                padding: EdgeInsets.all(AppSizes.mediumPadding(context)),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(
+                    AppSizes.cardBorderRadius(context),
+                  ),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Item Price:',
+                          style: TextStyle(
+                            color: AppColors.foregroundColor,
+                            fontSize: AppSizes.bodyFontSize(context),
+                          ),
+                        ),
+                        Text(
+                          'PKR ${itemPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: AppColors.foregroundColor,
+                            fontSize: AppSizes.bodyFontSize(context),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: AppSizes.smallSpacing(context)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Buy Fee (10%):',
+                          style: TextStyle(
+                            color: AppColors.foregroundColor,
+                            fontSize: AppSizes.bodyFontSize(context),
+                          ),
+                        ),
+                        Text(
+                          'PKR ${(itemPrice * 0.1).toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: AppColors.foregroundColor,
+                            fontSize: AppSizes.bodyFontSize(context),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Divider(color: AppColors.shadeColor),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total:',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: AppSizes.subtitleFontSize(context),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'PKR ${buyNowPrice.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: AppSizes.subtitleFontSize(context),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.shadeColor),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                // Navigate to checkout with modified listing
+                final modifiedListing = ListingModel(
+                  id: widget.listing.id,
+                  title: widget.listing.title,
+                  description: widget.listing.description,
+                  price: buyNowPrice,
+                  originalPrice: widget.listing.originalPrice,
+                  category: widget.listing.category,
+                  subcategory: widget.listing.subcategory,
+                  brand: widget.listing.brand,
+                  year: widget.listing.year,
+                  condition: widget.listing.condition,
+                  mileage: widget.listing.mileage,
+                  fuelType: widget.listing.fuelType,
+                  transmission: widget.listing.transmission,
+                  color: widget.listing.color,
+                  images: widget.listing.images,
+                  location: widget.listing.location,
+                  seller: widget.listing.seller,
+                  isActive: widget.listing.isActive,
+                  isFeatured: widget.listing.isFeatured,
+                  viewCount: widget.listing.viewCount,
+                  favoriteCount: widget.listing.favoriteCount,
+                  clickCount: widget.listing.clickCount,
+                  quantity: widget.listing.quantity,
+                  originalQuantity: widget.listing.originalQuantity,
+                  isAuction: false, // Mark as non-auction for checkout
+                  status: widget.listing.status,
+                  soldTo: widget.listing.soldTo,
+                  soldAt: widget.listing.soldAt,
+                  soldPrice: widget.listing.soldPrice,
+                  createdAt: widget.listing.createdAt,
+                  updatedAt: widget.listing.updatedAt,
+                );
 
-    // Ensure the bid doesn't go below the minimum required bid
-    final minimumBid =
-        (widget.listing.currentBid ?? widget.listing.startingBid ?? 0) +
-        bidIncrement;
-    final finalBid = newBid < minimumBid ? minimumBid : newBid;
-
-    setState(() {
-      _bidController.text = finalBid.toStringAsFixed(0);
-    });
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CheckoutScreen(listing: modifiedListing, quantity: 1),
+                  ),
+                );
+              },
+              style: CustomWidgets.elevatedButtonStyle(context),
+              child: Text(
+                'Confirm & Buy',
+                style: TextStyle(color: AppColors.titleColor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildQuickIncrementButton(String label, double amount) {

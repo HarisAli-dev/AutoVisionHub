@@ -23,10 +23,13 @@ class AllListingsTab extends StatefulWidget {
   State<AllListingsTab> createState() => _AllListingsTabState();
 }
 
+late List<ListingModel> listings;
+
 class _AllListingsTabState extends State<AllListingsTab> {
   @override
   void initState() {
     super.initState();
+    listings = _getFilteredListings();
     widget.scrollController.addListener(_onScroll);
   }
 
@@ -38,7 +41,10 @@ class _AllListingsTabState extends State<AllListingsTab> {
   }
 
   List<ListingModel> _getFilteredListings() {
-    final controller = Provider.of<MarketplaceController>(context, listen: false);
+    final controller = Provider.of<MarketplaceController>(
+      context,
+      listen: false,
+    );
     final currentUserId = HiveUtils.getData('userId');
 
     // Filter out current user's listings from "All Items" view
@@ -54,8 +60,7 @@ class _AllListingsTabState extends State<AllListingsTab> {
   Widget build(BuildContext context) {
     return Consumer<MarketplaceController>(
       builder: (context, controller, child) {
-        final listings = _getFilteredListings();
-
+        listings = _getFilteredListings();
         if (controller.isLoading && listings.isEmpty) {
           return Center(
             child: CircularProgressIndicator(color: AppColors.primary),
@@ -101,18 +106,34 @@ class _AllListingsTabState extends State<AllListingsTab> {
           onRefresh: () async => widget.onRefresh(),
           child: Padding(
             padding: EdgeInsets.all(AppSizes.mediumPadding(context)),
-            child: GridView.builder(
-              controller: widget.scrollController,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: AppSizes.mediumSpacing(context),
-                mainAxisSpacing: AppSizes.mediumSpacing(context),
-              ),
-              itemCount: listings.length,
-              itemBuilder: (context, index) {
-                final listing = listings[index];
-                return _buildListingCard(listing);
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate responsive aspect ratio based on screen size
+                final screenWidth = MediaQuery.of(context).size.width;
+                // Adjust aspect ratio for different screen sizes
+                double aspectRatio = 0.75;
+                if (screenWidth > 600) {
+                  // Tablets - slightly wider cards
+                  aspectRatio = 0.7;
+                } else if (screenWidth < 360) {
+                  // Very small phones - taller cards
+                  aspectRatio = 0.8;
+                }
+
+                return GridView.builder(
+                  controller: widget.scrollController,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: aspectRatio,
+                    crossAxisSpacing: AppSizes.mediumSpacing(context),
+                    mainAxisSpacing: AppSizes.mediumSpacing(context),
+                  ),
+                  itemCount: listings.length,
+                  itemBuilder: (context, index) {
+                    final listing = listings[index];
+                    return _buildListingCard(listing);
+                  },
+                );
               },
             ),
           ),
@@ -144,7 +165,7 @@ class _AllListingsTabState extends State<AllListingsTab> {
           children: [
             // Image
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -183,13 +204,17 @@ class _AllListingsTabState extends State<AllListingsTab> {
             Expanded(
               flex: 2,
               child: Padding(
-                padding: EdgeInsets.all(AppSizes.smallPadding(context)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSizes.smallPadding(context) * 0.7,
+                  vertical: AppSizes.smallPadding(context) * 0.5,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Top content (title, price, stock)
                     Flexible(
+                      flex: 2,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -199,23 +224,29 @@ class _AllListingsTabState extends State<AllListingsTab> {
                             listing.title,
                             style: TextStyle(
                               color: AppColors.titleColor,
-                              fontSize: AppSizes.bodyFontSize(context),
+                              fontSize: AppSizes.bodyFontSize(context) * 0.9,
                               fontWeight: FontWeight.bold,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: AppSizes.smallSpacing(context) / 3),
+                          SizedBox(
+                            height: AppSizes.smallSpacing(context) * 0.1,
+                          ),
                           // Price
                           Text(
                             'PKR ${listing.price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                             style: TextStyle(
                               color: AppColors.primary,
-                              fontSize: AppSizes.inputFontSize(context),
+                              fontSize: AppSizes.smallFontSize(context) * 0.9,
                               fontWeight: FontWeight.bold,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: AppSizes.smallSpacing(context) / 4),
+                          SizedBox(
+                            height: AppSizes.smallSpacing(context) * 0.1,
+                          ),
                           // Stock status
                           Text(
                             listing.stockStatus,
@@ -223,7 +254,7 @@ class _AllListingsTabState extends State<AllListingsTab> {
                               color: listing.isInStock
                                   ? AppColors.shadeColor
                                   : Colors.red,
-                              fontSize: AppSizes.smallFontSize(context),
+                              fontSize: AppSizes.smallFontSize(context) * 0.8,
                               fontWeight: listing.quantity <= 5
                                   ? FontWeight.w500
                                   : FontWeight.normal,
@@ -234,26 +265,58 @@ class _AllListingsTabState extends State<AllListingsTab> {
                         ],
                       ),
                     ),
-                    // Bottom content (location)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          color: AppColors.shadeColor,
-                          size: AppSizes.smallIconSize(context),
-                        ),
-                        SizedBox(width: AppSizes.smallSpacing(context) / 4),
-                        Expanded(
-                          child: Text(
-                            listing.location.city,
-                            style: TextStyle(
-                              color: AppColors.shadeColor,
-                              fontSize: AppSizes.smallFontSize(context),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                    // Bottom content (location + add to cart)
+                    Flexible(
+                      flex: 1,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            color: AppColors.shadeColor,
+                            size: AppSizes.smallIconSize(context) * 0.75,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: AppSizes.smallSpacing(context) * 0.2),
+                          Expanded(
+                            child: Text(
+                              listing.location.city,
+                              style: TextStyle(
+                                color: AppColors.shadeColor,
+                                fontSize: AppSizes.smallFontSize(context) * 0.8,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.all(4),
+                            constraints: BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            tooltip: 'Add to cart',
+                            icon: Icon(
+                              Icons.add_shopping_cart,
+                              color: AppColors.primary,
+                              size: AppSizes.smallIconSize(context) * 0.9,
+                            ),
+                            onPressed: () {
+                              final controller =
+                                  Provider.of<MarketplaceController>(
+                                    context,
+                                    listen: false,
+                                  );
+                              controller.addToCart(listing);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Added to cart'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

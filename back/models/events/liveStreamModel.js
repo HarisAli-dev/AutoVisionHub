@@ -81,7 +81,7 @@ const liveStreamSchema = new mongoose.Schema({
       },
       eventType: {
         type: String,
-        enum: ['like', 'comment', 'share', 'reaction', 'question', 'poll_vote'],
+        enum: ['like', 'comment', 'share', 'reaction', 'question', 'poll_vote', 'chat_message'],
         required: true
       },
       data: mongoose.Schema.Types.Mixed,
@@ -103,7 +103,39 @@ const liveStreamSchema = new mongoose.Schema({
     type: String, // URL to recorded video if available
     trim: true
   },
-  // TODO: Chatbot related fields (for future implementation)
+  // Chatbot integration with ZEGOCLOUD
+  chatbot: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    instanceId: {
+      type: String,
+      trim: true
+    },
+    agentId: {
+      type: String,
+      default: 'autovision-ai-assistant'
+    },
+    startTime: {
+      type: Date
+    },
+    endTime: {
+      type: Date
+    },
+    messagesCount: {
+      type: Number,
+      default: 0
+    },
+    config: {
+      autoStart: {
+        type: Boolean,
+        default: true
+      },
+      welcomeMessage: String
+    }
+  },
+  // Chatbot conversation data
   chatbotData: {
     isEnabled: {
       type: Boolean,

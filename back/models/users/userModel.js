@@ -13,7 +13,13 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'event_manager', 'community_member'],
     default: 'community_member',  // Default role is Community Member
   },
+  isBanned: { type: Boolean, default: false }, // Track if user is banned
   fcmToken: { type: String }, // Firebase Cloud Messaging token for push notifications
+  visitedItems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }], // Track items user has visited
+  recentlyViewed: [{
+    listing: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing' },
+    viewedAt: { type: Date, default: Date.now }
+  }], // Recently viewed items with timestamp
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

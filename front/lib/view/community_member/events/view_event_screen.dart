@@ -7,6 +7,7 @@ import 'package:front/view/community_member/events/seat_booking_screen.dart';
 import 'package:front/view/community_member/events/ticket_booking_screen.dart';
 import 'package:front/services/live_stream_service.dart';
 import 'package:front/services/socket_service.dart';
+import 'package:front/utils/time_utils.dart';
 
 class ViewEventScreen extends StatefulWidget {
   final EventModel event;
@@ -299,14 +300,14 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
                   _buildDetailRow(
                     Icons.calendar_today,
                     'Date',
-                    '${widget.event.eventDateTime.day}/${widget.event.eventDateTime.month}/${widget.event.eventDateTime.year}',
+                    TimeUtils.formatDatePKT(widget.event.eventDateTime),
                   ),
                   SizedBox(height: AppSizes.getScreenHeight(context) * 0.015),
 
                   _buildDetailRow(
                     Icons.access_time,
                     'Time',
-                    '${widget.event.eventDateTime.hour.toString().padLeft(2, '0')}:${widget.event.eventDateTime.minute.toString().padLeft(2, '0')}',
+                    TimeUtils.formatTimePKT(widget.event.eventDateTime),
                   ),
                   SizedBox(height: AppSizes.getScreenHeight(context) * 0.015),
 
@@ -827,9 +828,9 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
       width: double.infinity,
       height: AppSizes.getScreenHeight(context) * 0.06,
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           if (widget.event.bookingType == 'seat') {
-            Navigator.pushReplacement(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => SeatBookingScreen(
@@ -842,19 +843,13 @@ class _ViewEventScreenState extends State<ViewEventScreen> {
               ),
             );
           } else {
-            Navigator.pushReplacement(
+            await Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => TicketBookingScreen(event: widget.event),
               ),
             );
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Booking functionality will be implemented later'),
-              backgroundColor: AppColors.primary,
-            ),
-          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,

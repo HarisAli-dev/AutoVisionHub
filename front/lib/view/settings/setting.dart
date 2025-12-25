@@ -57,6 +57,16 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: Icon(
+                Icons.account_balance_wallet,
+                color: AppColors.primary,
+              ),
+              title: Text('Payment Profile'),
+              onTap: () {
+                Navigator.pushNamed(context, '/payment-profile');
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.support_agent, color: AppColors.primary),
               title: Text('Customer Support'),
               onTap: () {

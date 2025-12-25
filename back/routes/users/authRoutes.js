@@ -3,9 +3,10 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/users/authController');
 const { protect} = require('../../middleware/authMiddleware');
+const { checkBanned } = require('../../middleware/bannedUserMiddleware');
 
 router.post('/register', authController.register);
-router.post('/login', authController.login);
+router.post('/login', checkBanned, authController.login);
 
 router.get('/checkTokenExpiry/:token', authController.checkTokenExpiry);
 

@@ -7,7 +7,6 @@ import 'package:front/utils/hive_utils.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:front/utils/snackbars.dart';
 import 'package:front/view/community_member/groups/group_screen.dart';
-import 'package:front/view/community_member/groups/join_group_screen.dart';
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -55,7 +54,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
       CustomSnackbars.showErrorSnackbar(
         context,
         'Failed to load groups: ${e.toString()}',
-  
       );
     }
   }
@@ -333,7 +331,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
         CustomSnackbars.showErrorSnackbar(
           context,
           'Failed to leave group: ${e.toString()}',
-      
         );
       }
     }
@@ -373,7 +370,6 @@ class _GroupListScreenState extends State<GroupListScreen> {
         CustomSnackbars.showErrorSnackbar(
           context,
           'Failed to delete group: ${e.toString()}',
-       
         );
       }
     }
@@ -383,102 +379,81 @@ class _GroupListScreenState extends State<GroupListScreen> {
   Widget build(BuildContext context) {
     AppColors.getBackgroundColor(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-
-      body: Column(
-        children: [
-          // Search bar
-          Container(
-            padding: EdgeInsets.all(8),
-            color: AppColors.backgroundColor,
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search groups...',
-                prefixIcon: Icon(Icons.search, color: AppColors.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+    return Column(
+      children: [
+        // Search bar
+        Container(
+          padding: EdgeInsets.all(8),
+          color: AppColors.backgroundColor,
+          child: TextField(
+            controller: searchController,
+            decoration: InputDecoration(
+              hintText: 'Search groups...',
+              prefixIcon: Icon(Icons.search, color: AppColors.primary),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(color: AppColors.primary),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide(color: AppColors.primary),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
           ),
+        ),
 
-          // Groups list
-          Expanded(
-            child: isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : filteredGroups.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.group_outlined,
-                          size: 80,
-                          color: Colors.grey[400],
+        // Groups list
+        Expanded(
+          child: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                )
+              : filteredGroups.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.group_outlined,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        searchController.text.isNotEmpty
+                            ? 'No groups found'
+                            : 'No groups yet',
+                        style: TextStyle(
+                          fontSize: AppSizes.subtitleFontSize(context),
+                          color: Colors.grey[600],
                         ),
-                        SizedBox(height: 16),
-                        Text(
-                          searchController.text.isNotEmpty
-                              ? 'No groups found'
-                              : 'No groups yet',
-                          style: TextStyle(
-                            fontSize: AppSizes.subtitleFontSize(context),
-                            color: Colors.grey[600],
-                          ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        searchController.text.isNotEmpty
+                            ? 'Try a different search term'
+                            : 'Create a group to get started',
+                        style: TextStyle(
+                          fontSize: AppSizes.bodyFontSize(context),
+                          color: Colors.grey[500],
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          searchController.text.isNotEmpty
-                              ? 'Try a different search term'
-                              : 'Create a group to get started',
-                          style: TextStyle(
-                            fontSize: AppSizes.bodyFontSize(context),
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadGroups,
-                    color: AppColors.primary,
-                    child: ListView.builder(
-                      itemCount: filteredGroups.length,
-                      itemBuilder: (context, index) {
-                        return _buildGroupTile(filteredGroups[index]);
-                      },
-                    ),
+                      ),
+                    ],
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  JoinGroupScreen(currentUserId: currentUserId),
-            ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        tooltip: 'Create Group',
-        child: Icon(Icons.chat, color: AppColors.foregroundColor),
-      ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadGroups,
+                  color: AppColors.primary,
+                  child: ListView.builder(
+                    itemCount: filteredGroups.length,
+                    itemBuilder: (context, index) {
+                      return _buildGroupTile(filteredGroups[index]);
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }

@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:front/config/app_config.dart';
 import 'package:front/model/marketplace/listing_model.dart';
 import 'package:front/model/marketplace/bid_model.dart';
-import 'package:front/model/marketplace/offer_model.dart';
 import 'package:front/model/marketplace/marketplace_chat_model.dart';
 import 'package:front/model/marketplace/marketplace_message_model.dart';
 
@@ -80,14 +79,47 @@ class MarketplaceService {
   }
 
   // Get single listing by ID
-  static Future<Map<String, dynamic>> getListingById(String id) async {
-    final response = await http.get(Uri.parse('$baseUrl/listings/$id'));
+  static Future<Map<String, dynamic>> getListingById(
+    String id, {
+    String? token,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/listings/$id'),
+      headers: _getHeaders(token),
+    );
     final data = _handleResponse(response);
     return {
       'listing': ListingModel.fromJson(data['data']['listing']),
       'currentBid': data['data']['currentBid'] != null
           ? BidModel.fromJson(data['data']['currentBid'])
           : null,
+    };
+  }
+
+  // Get recently viewed items
+  static Future<Map<String, dynamic>> getRecentlyViewedItems({
+    required String token,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    final uri = Uri.parse('$baseUrl/listings/recently-viewed')
+        .replace(queryParameters: queryParams);
+    final response = await http.get(
+      uri,
+      headers: _getHeaders(token),
+    );
+
+    final data = _handleResponse(response);
+    return {
+      'listings': (data['data']['listings'] as List)
+          .map((json) => ListingModel.fromJson(json))
+          .toList(),
+      'pagination': data['data']['pagination'],
     };
   }
 
@@ -311,7 +343,7 @@ class MarketplaceService {
   // OFFER SERVICES
 
   // Make an offer
-  static Future<OfferModel> makeOffer(
+  static Future<Map<String, dynamic>> makeOffer(
     String listingId,
     Map<String, dynamic> offerData,
     String token,
@@ -322,7 +354,7 @@ class MarketplaceService {
       body: json.encode(offerData),
     );
     final data = _handleResponse(response);
-    return OfferModel.fromJson(data['data']);
+    return data['data'];
   }
 
   // Get offers for a listing (seller's view)
@@ -346,9 +378,7 @@ class MarketplaceService {
 
     final data = _handleResponse(response);
     return {
-      'offers': (data['data']['offers'] as List)
-          .map((json) => OfferModel.fromJson(json))
-          .toList(),
+      'offers': data['data']['offers'] as List,
       'pagination': data['data']['pagination'],
     };
   }
@@ -373,15 +403,13 @@ class MarketplaceService {
 
     final data = _handleResponse(response);
     return {
-      'offers': (data['data']['offers'] as List)
-          .map((json) => OfferModel.fromJson(json))
-          .toList(),
+      'offers': data['data']['offers'] as List,
       'pagination': data['data']['pagination'],
     };
   }
 
   // Accept an offer
-  static Future<OfferModel> acceptOffer(
+  static Future<Map<String, dynamic>> acceptOffer(
     String offerId, {
     String? responseMessage,
     required String token,
@@ -392,7 +420,7 @@ class MarketplaceService {
       body: json.encode({'responseMessage': responseMessage}),
     );
     final data = _handleResponse(response);
-    return OfferModel.fromJson(data['data']);
+    return data['data'];
   }
 
   // Reject an offer
@@ -410,7 +438,7 @@ class MarketplaceService {
   }
 
   // Make a counter offer
-  static Future<OfferModel> makeCounterOffer(
+  static Future<Map<String, dynamic>> makeCounterOffer(
     String offerId,
     Map<String, dynamic> counterData,
     String token,
@@ -421,7 +449,7 @@ class MarketplaceService {
       body: json.encode(counterData),
     );
     final data = _handleResponse(response);
-    return OfferModel.fromJson(data['data']);
+    return data['data'];
   }
 
   // Accept counter offer
@@ -552,6 +580,213 @@ class MarketplaceService {
     final response = await http.put(
       Uri.parse('$baseUrl/chat/$chatId/read'),
       headers: _getHeaders(token),
+    );
+    _handleResponse(response);
+  }
+
+  // RECOMMENDATION SERVICES
+
+  // Get personalized recommendations
+  static Future<Map<String, dynamic>> getPersonalizedRecommendations({
+    required String token,
+    int limit = 20,
+    bool includeCollaborative = true,
+    bool includeContentBased = true,
+    bool includeTrending = true,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      'includeCollaborative': includeCollaborative.toString(),
+      'includeContentBased': includeContentBased.toString(),
+      'includeTrending': includeTrending.toString(),
+    };
+
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/personalized')
+        .replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: _getHeaders(token));
+
+    final data = _handleResponse(response);
+    return {
+      'recommendations': (data['data']['recommendations'] as List)
+          .map((json) => ListingModel.fromJson(json))
+          .toList(),
+      'count': data['data']['count'],
+    };
+  }
+
+  // Get trending in city
+  static Future<Map<String, dynamic>> getTrendingInCity({
+    required String token,
+    int limit = 10,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+    };
+
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/trending')
+        .replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: _getHeaders(token));
+
+    final data = _handleResponse(response);
+    return {
+      'listings': (data['data']['listings'] as List)
+          .map((json) => ListingModel.fromJson(json))
+          .toList(),
+      'city': data['data']['city'],
+      'count': data['data']['count'],
+    };
+  }
+
+  // Get collaborative recommendations
+  static Future<Map<String, dynamic>> getCollaborativeRecommendations({
+    required String token,
+    int limit = 10,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+    };
+
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/collaborative')
+        .replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: _getHeaders(token));
+
+    final data = _handleResponse(response);
+    return {
+      'recommendations': (data['data']['recommendations'] as List)
+          .map((json) => ListingModel.fromJson(json))
+          .toList(),
+      'count': data['data']['count'],
+    };
+  }
+
+  // Get content-based recommendations
+  static Future<Map<String, dynamic>> getContentBasedRecommendations({
+    required String token,
+    int limit = 10,
+  }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+    };
+
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/content-based')
+        .replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: _getHeaders(token));
+
+    final data = _handleResponse(response);
+    return {
+      'recommendations': (data['data']['recommendations'] as List)
+          .map((json) => ListingModel.fromJson(json))
+          .toList(),
+      'count': data['data']['count'],
+    };
+  }
+
+  // Get user preferences
+  static Future<Map<String, dynamic>> getUserPreferences({
+    required String token,
+  }) async {
+    final uri = Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/preferences');
+    final response = await http.get(uri, headers: _getHeaders(token));
+
+    final data = _handleResponse(response);
+    return data['data'];
+  }
+
+  // Track listing click
+  static Future<void> trackListingClick({
+    required String listingId,
+    required String token,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${AppConfig.apiBaseUrl}/marketplace/recommendations/track-click'),
+      headers: _getHeaders(token),
+      body: json.encode({'listingId': listingId}),
+    );
+    _handleResponse(response);
+  }
+
+  // REVIEW SERVICES
+
+  static Future<Map<String, dynamic>> getListingReviews({
+    required String listingId,
+    int page = 1,
+    int limit = 10,
+    String? token,
+  }) async {
+    final uri = Uri.parse(
+      '${AppConfig.apiBaseUrl}/marketplace/reviews/listing/$listingId',
+    ).replace(queryParameters: {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    });
+
+    final response = await http.get(uri, headers: _getHeaders(token));
+    final data = _handleResponse(response);
+    return data['data'];
+  }
+
+  static Future<Map<String, dynamic>> createReview({
+    required String listingId,
+    required double rating,
+    String? review,
+    required String token,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${AppConfig.apiBaseUrl}/marketplace/reviews'),
+      headers: _getHeaders(token),
+      body: json.encode({
+        'listingId': listingId,
+        'rating': rating,
+        'comment': review,
+      }),
+    );
+    final data = _handleResponse(response);
+    return data['data'];
+  }
+
+  static Future<Map<String, dynamic>> updateReview({
+    required String reviewId,
+    required String token,
+    double? rating,
+    String? review,
+  }) async {
+    final body = <String, dynamic>{};
+    if (rating != null) body['rating'] = rating;
+    if (review != null) body['comment'] = review;
+
+    final response = await http.put(
+      Uri.parse('${AppConfig.apiBaseUrl}/marketplace/reviews/$reviewId'),
+      headers: _getHeaders(token),
+      body: json.encode(body),
+    );
+    final data = _handleResponse(response);
+    return data['data'];
+  }
+
+  static Future<void> deleteReview({
+    required String reviewId,
+    required String token,
+  }) async {
+    final response = await http.delete(
+      Uri.parse('${AppConfig.apiBaseUrl}/marketplace/reviews/$reviewId'),
+      headers: _getHeaders(token),
+    );
+    _handleResponse(response);
+  }
+
+  static Future<void> reportReview({
+    required String reviewId,
+    required String token,
+    String? reason,
+    String? description,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${AppConfig.apiBaseUrl}/marketplace/reviews/$reviewId/report'),
+      headers: _getHeaders(token),
+      body: json.encode({
+        if (reason != null) 'reason': reason,
+        if (description != null) 'description': description,
+      }),
     );
     _handleResponse(response);
   }

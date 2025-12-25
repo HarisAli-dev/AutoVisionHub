@@ -30,7 +30,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final _addressController = TextEditingController();
   final _startingBidController = TextEditingController();
   final _bidIncrementController = TextEditingController();
-  final _minimumOfferController = TextEditingController();
 
   String _selectedCategory = 'vehicle';
   String _selectedSubcategory = '';
@@ -38,7 +37,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   String _selectedFuelType = 'petrol';
   String _selectedTransmission = 'manual';
   bool _isAuction = false;
-  bool _isNegotiable = true;
   DateTime? _auctionEndTime;
 
   // Image upload state
@@ -70,7 +68,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _addressController.dispose();
     _startingBidController.dispose();
     _bidIncrementController.dispose();
-    _minimumOfferController.dispose();
     super.dispose();
   }
 
@@ -545,42 +542,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 ),
               ],
 
-              SwitchListTile(
-                title: const Text(
-                  'Negotiable',
-                  style: TextStyle(color: Colors.white),
-                ),
-                subtitle: const Text(
-                  'Allow users to make offers',
-                  style: TextStyle(color: Colors.grey),
-                ),
-                value: _isNegotiable,
-                onChanged: (value) {
-                  setState(() {
-                    _isNegotiable = value;
-                  });
-                },
-                activeColor: AppColors.primary,
-              ),
-
-              if (_isNegotiable) ...[
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _minimumOfferController,
-                  label: 'Minimum Offer (PKR) - Optional',
-                  hint: 'Lowest acceptable offer amount',
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value != null &&
-                        value.isNotEmpty &&
-                        double.tryParse(value) == null) {
-                      return 'Please enter a valid amount';
-                    }
-                    return null;
-                  },
-                ),
-              ],
-
               SizedBox(height: AppSizes.largeSpacing(context)),
 
               // Submit Button
@@ -959,10 +920,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             : null,
         'bidIncrement': _bidIncrementController.text.isNotEmpty
             ? double.parse(_bidIncrementController.text)
-            : null,
-        'isNegotiable': _isNegotiable,
-        'minimumOffer': _isNegotiable && _minimumOfferController.text.isNotEmpty
-            ? double.parse(_minimumOfferController.text)
             : null,
       };
 

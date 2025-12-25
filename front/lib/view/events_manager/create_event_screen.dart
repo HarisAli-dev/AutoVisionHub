@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:front/model/events/event_model.dart';
 import 'package:front/model/events/ticket_model.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/custom_widgets.dart';
@@ -8,6 +10,7 @@ import 'package:front/view/events_manager/seating_visualizer_screen.dart';
 import 'package:front/controller/events/event_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:front/services/event_reminder_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -343,9 +346,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     (index) => TicketModel.empty(index + 1),
                                   ),
                                 );
-                            print(
-                              'Event creation response: ${response.statusCode}',
-                            );
+                            if (response.statusCode == 200) {
+                              try {
+                                final Map<String, dynamic> body =
+                                    jsonDecode(response.body);
+                                if (body['data'] != null) {
+                                  final EventModel event =
+                                      EventModel.fromJson(body['data']);
+                                  await EventReminderService
+                                      .scheduleEventReminders(
+                                    event: event,
+                                    bookingSummary: 'Created by you.',
+                                  );
+                                }
+                              } catch (e) {
+                                debugPrint(
+                                  'Failed to schedule reminder for created event: $e',
+                                );
+                              }
+                            }
                             Navigator.pop(
                               context,
                             ); // Go back to previous screen

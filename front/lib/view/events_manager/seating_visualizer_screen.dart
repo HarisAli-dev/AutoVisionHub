@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:front/controller/events/event_controller.dart';
 import 'package:front/model/events/layout_model.dart';
 import 'package:front/model/events/seats_model.dart';
+import 'package:front/model/events/event_model.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/custom_widgets.dart';
 import 'package:front/utils/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:front/utils/snackbars.dart';
+import 'package:front/services/event_reminder_service.dart';
 
 // The screen containing the seating designer
 // ignore: must_be_immutable
@@ -177,6 +180,18 @@ class _SeatingDesignerScreenState extends State<SeatingDesignerScreen> {
           print("Response status: ${response.statusCode}");
           if (response.statusCode == 201) {
             if (!mounted) return;
+            try {
+              final Map<String, dynamic> body = jsonDecode(response.body);
+              if (body['data'] != null) {
+                final EventModel event = EventModel.fromJson(body['data']);
+                EventReminderService.scheduleEventReminders(
+                  event: event,
+                  bookingSummary: 'Created by you.',
+                );
+              }
+            } catch (e) {
+              debugPrint('Failed to parse event for reminders: $e');
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Event created successfully!')),
             );

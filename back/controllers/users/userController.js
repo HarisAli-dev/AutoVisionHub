@@ -1,6 +1,10 @@
 // controllers/userController.js
 const User = require('../../models/users/userModel');
 const Chat = require('../../models/chats/chatModel');
+const ChatMessage = require('../../models/chats/chatMessageModel');
+const Group = require('../../models/groups/groupModel');
+const GroupMessage = require('../../models/groups/groupMessageModel');
+const Booking = require('../../models/events/bookingModel');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -207,5 +211,100 @@ exports.changePassword = async (req, res) => {
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ message: 'Failed to change password', error: error.message });
+  }
+};
+
+// Delete user - Admin only
+exports.deleteUser = async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent deleting admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Cannot delete admin users' });
+    }
+
+    // Start a session for transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // 1. Delete all one-to-one chats where user is a participant
+      const userChats = await Chat.find({ participants: userId }).session(session);
+      const chatIds = userChats.map(chat => chat._id);
+      
+      // Delete all messages in these chats
+      await ChatMessage.deleteMany({ chatId: { $in: chatIds } }).session(session);
+      
+      // Delete the chats
+      await Chat.deleteMany({ participants: userId }).session(session);
+
+      // 2. Remove user from all groups and delete their group messages
+      await Group.updateMany(
+        { participants: userId },
+        { 
+          $pull: { 
+            participants: userId,
+            admins: userId 
+          } 
+        }
+      ).session(session);
+
+      // Delete all group messages sent by this user
+      await GroupMessage.deleteMany({ senderId: userId }).session(session);
+
+      // 3. Delete all bookings made by this user
+      await Booking.deleteMany({ userId: userId }).session(session);
+
+      // 4. Finally, delete the user
+      await User.findByIdAndDelete(userId).session(session);
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({ message: 'User deleted successfully along with all associated data' });
+    } catch (error) {
+      // If error, abort the transaction
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Failed to delete user', error: error.message });
+  }
+};
+
+// Ban/Unban user - Admin only
+exports.banUser = async (req, res) => {
+  const { userId } = req.params;
+  const { ban } = req.body; // true to ban, false to unban
+  
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent banning admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Cannot ban admin users' });
+    }
+
+    user.isBanned = ban;
+    await user.save();
+
+    const action = ban ? 'banned' : 'unbanned';
+    res.status(200).json({ message: `User ${action} successfully`, user });
+  } catch (error) {
+    console.error('Error banning/unbanning user:', error);
+    res.status(500).json({ message: 'Failed to update user ban status', error: error.message });
   }
 };

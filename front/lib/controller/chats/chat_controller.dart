@@ -15,18 +15,18 @@ class ChatController {
       if (token == null) {
         throw Exception('Authentication token not found');
       }
-      
+
       final response = await http.get(
         Uri.parse('$apiUrl/chat/getChats'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
       );
-      
+
       if (response.statusCode == 200) {
         final dynamic decodedResponse = json.decode(response.body);
-        
+
         // Handle both possible formats: direct list or map with 'chats' key
         List<dynamic> data;
         if (decodedResponse is List) {
@@ -38,7 +38,7 @@ class ChatController {
         } else {
           throw Exception('Unexpected response format');
         }
-        
+
         return data.map((chat) => ChatModel.fromJson(chat)).toList();
       } else {
         throw Exception('Failed to load chats: ${response.statusCode}');
@@ -57,14 +57,12 @@ class ChatController {
         Uri.parse('$apiUrl/chat/createChat'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'userId': userId
-        }),
+        body: json.encode({'userId': userId}),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final dynamic decodedResponse = json.decode(response.body);
         return ChatModel.fromJson(decodedResponse);
       } else {
@@ -87,29 +85,28 @@ class ChatController {
         Uri.parse('$apiUrl/chat/$chatId'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
       );
       if (response.statusCode == 200) {
         final dynamic decodedResponse = json.decode(response.body);
-        
+
         // Check if the response has both chat and messages
-        if (decodedResponse is Map<String, dynamic> && 
-            decodedResponse.containsKey('chat') && 
+        if (decodedResponse is Map<String, dynamic> &&
+            decodedResponse.containsKey('chat') &&
             decodedResponse.containsKey('messages')) {
-          
           // Extract chat and messages
           final chatData = decodedResponse['chat'];
           final messagesList = decodedResponse['messages'] as List<dynamic>;
-          
+
           // Parse messages
           final messages = messagesList
               .map((msgJson) => Message.fromJson(msgJson))
               .toList();
-          
+
           // Create ChatModel with both chat data and messages
           final chatModel = ChatModel.fromJson(chatData);
-          
+
           // Return a new ChatModel with all properties including messages
           return ChatModel(
             id: chatModel.id,
@@ -133,7 +130,7 @@ class ChatController {
       throw Exception('Failed to get/create chat: $e');
     }
   }
-  
+
   // Delete a chat
   static Future<void> deleteChat(String chatId) async {
     try {
@@ -141,16 +138,14 @@ class ChatController {
       if (token == null) {
         throw Exception('Authentication token not found');
       }
-      
+
       final response = await http.delete(
         Uri.parse('$apiUrl/chat/$chatId'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'chatId': chatId,
-        }),
+        body: json.encode({'chatId': chatId}),
       );
       print('Delete chat response: ${response.body}');
       if (response.statusCode != 200) {
@@ -161,7 +156,7 @@ class ChatController {
       throw Exception('Failed to delete chat: $e');
     }
   }
-  
+
   // Mark chat as read
   static Future<void> markChatAsRead(String chatId) async {
     try {
@@ -169,19 +164,19 @@ class ChatController {
       if (token == null) {
         throw Exception('Authentication token not found');
       }
-      
+
       final response = await http.patch(
         Uri.parse('$apiUrl/chat/$chatId/read'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token'
+          'Authorization': 'Bearer $token',
         },
       );
-      
+
       if (response.statusCode != 200) {
         throw Exception('Failed to mark chat as read: ${response.statusCode}');
       }
-      
+
       // Also notify via socket for real-time updates
       final socketService = SocketService();
       if (socketService.isConnected) {
@@ -199,6 +194,4 @@ class ChatController {
       throw Exception('Failed to mark chat as read: $e');
     }
   }
-
- 
 }

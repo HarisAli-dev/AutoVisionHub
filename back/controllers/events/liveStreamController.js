@@ -1,4 +1,6 @@
 const { liveStreamService } = require('../../services/liveStreamService');
+const { zegoChatbotService } = require('../../services/zegoChatbotService');
+const { zegoRecordingService } = require('../../services/zegoRecordingService');
 const Event = require('../../models/events/eventModel');
 
 const liveStreamController = {
@@ -63,8 +65,21 @@ const liveStreamController = {
         }
       });
 
-      // TODO: Initialize chatbot for this live stream
-      // await chatbotService.initializeForLiveStream(roomId, eventId);
+      // Initialize chatbot for this live stream
+      try {
+        const chatbotInstance = await zegoChatbotService.startChatbotSession(
+          roomId,
+          userId.toString(),
+          {
+            welcomeMessage: `Welcome to ${streamTitle}! I'm the AI Assistant here to help answer questions and engage with everyone.`
+          }
+        );
+        
+        console.log('✅ Chatbot initialized for live stream:', chatbotInstance);
+      } catch (chatbotError) {
+        console.error('⚠️ Failed to initialize chatbot (continuing without it):', chatbotError.message);
+        // Continue without chatbot - non-critical feature
+      }
 
       res.status(201).json({
         success: true,
@@ -135,8 +150,16 @@ const liveStreamController = {
       // Get event details
       const event = await Event.findById(liveStream.eventId).select('eventName eventDescription eventLocation images');
 
-      // TODO: Notify chatbot that user joined
-      // await chatbotService.notifyUserJoined(roomId, userId);
+      // Notify chatbot that user joined (if chatbot is active)
+      try {
+        const chatbotStatus = zegoChatbotService.getChatbotStatus(roomId);
+        if (chatbotStatus) {
+          console.log(`👤 User ${userId} joined live stream with active chatbot`);
+          // Chatbot will automatically detect new viewers through ZEGO SDK
+        }
+      } catch (chatbotError) {
+        console.warn('Could not notify chatbot of user join:', chatbotError.message);
+      }
 
       res.status(200).json({
         success: true,
@@ -198,6 +221,16 @@ const liveStreamController = {
         duration,
         finalViewerCount: liveStream.viewers.length
       });
+
+      // Stop chatbot session if active
+      try {
+        const chatbotResult = await zegoChatbotService.stopChatbotSession(roomId);
+        if (chatbotResult.success) {
+          console.log('✅ Chatbot session stopped:', chatbotResult);
+        }
+      } catch (chatbotError) {
+        console.warn('Could not stop chatbot session:', chatbotError.message);
+      }
 
       // Notify all viewers that the stream has ended via Socket.IO
       try {
@@ -315,8 +348,16 @@ const liveStreamController = {
       // Remove user from viewers
       await liveStreamService.removeViewer(roomId, userId);
 
-      // TODO: Notify chatbot that user left
-      // await chatbotService.notifyUserLeft(roomId, userId);
+      // Notify chatbot that user left (if chatbot is active)
+      try {
+        const chatbotStatus = zegoChatbotService.getChatbotStatus(roomId);
+        if (chatbotStatus) {
+          console.log(`👋 User ${userId} left live stream with active chatbot`);
+          // Chatbot will automatically detect viewer leaving through ZEGO SDK
+        }
+      } catch (chatbotError) {
+        console.warn('Could not notify chatbot of user leave:', chatbotError.message);
+      }
 
       res.status(200).json({
         success: true,
@@ -416,8 +457,39 @@ const liveStreamController = {
         timestamp: new Date()
       });
 
-      // TODO: Process engagement with chatbot
-      // await chatbotService.processEngagement(roomId, eventType, userId, data);
+      // Process engagement with chatbot (if active and relevant)
+      try {
+        const chatbotStatus = zegoChatbotService.getChatbotStatus(roomId);
+        if (chatbotStatus && eventType === 'chat_message' && data?.message) {
+          // If it's a chat message and mentions the bot, send to chatbot
+          const message = data.message.toLowerCase();
+          if (message.includes('bot') || message.includes('ai') || message.includes('assistant')) {
+            const userName = req.user?.name || 'User';
+            const botResponse = await zegoChatbotService.sendMessageToChatbot(
+              roomId, 
+              data.message, 
+              userId,
+              userName
+            );
+            
+            // Emit bot response back to all clients in the room
+            if (botResponse && botResponse.response) {
+              const io = req.app.get('io');
+              if (io) {
+                io.to(roomId).emit('bot_message', {
+                  message: botResponse.response,
+                  senderId: chatbotStatus.agentUserId,
+                  senderName: 'AI Bot',
+                  timestamp: Date.now()
+                });
+                console.log('🤖 Bot response sent to room:', botResponse.response);
+              }
+            }
+          }
+        }
+      } catch (chatbotError) {
+        console.warn('Could not process engagement with chatbot:', chatbotError.message);
+      }
 
       res.status(200).json({
         success: true,
@@ -429,6 +501,104 @@ const liveStreamController = {
       res.status(500).json({
         success: false,
         message: 'Failed to record engagement event',
+        error: error.message
+      });
+    }
+  },
+
+  // Upload recording
+  uploadRecording: async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.user._id;
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No video file provided'
+        });
+      }
+
+      // Verify the live stream exists and user is the host
+      const liveStream = await liveStreamService.getLiveStreamByRoomId(roomId);
+      if (!liveStream) {
+        return res.status(404).json({
+          success: false,
+          message: 'Live stream not found'
+        });
+      }
+
+      if (liveStream.hostId.toString() !== userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only the host can upload recording'
+        });
+      }
+
+      // Upload to Cloudinary
+      const recordingUrl = await zegoRecordingService.uploadRecording(
+        req.file.path,
+        roomId
+      );
+
+      // Save URL to database
+      await liveStreamService.updateLiveStream(roomId, {
+        recordingUrl
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Recording uploaded successfully',
+        data: { recordingUrl }
+      });
+
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload recording',
+        error: error.message
+      });
+    }
+  },
+
+  // Get recording
+  getRecording: async (req, res) => {
+    try {
+      const { roomId } = req.params;
+
+      const liveStream = await liveStreamService.getLiveStreamByRoomId(roomId);
+      if (!liveStream) {
+        return res.status(404).json({
+          success: false,
+          message: 'Live stream not found'
+        });
+      }
+
+      if (!liveStream.recordingUrl) {
+        return res.status(404).json({
+          success: false,
+          message: 'No recording available for this stream'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          recordingUrl: liveStream.recordingUrl,
+          streamTitle: liveStream.streamTitle,
+          streamDescription: liveStream.streamDescription,
+          startTime: liveStream.startTime,
+          endTime: liveStream.endTime,
+          duration: liveStream.duration
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting recording:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get recording',
         error: error.message
       });
     }

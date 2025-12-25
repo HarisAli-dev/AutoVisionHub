@@ -1,24 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:front/controller/users/auth_controller.dart';
 import 'package:front/utils/app_colors.dart';
 import 'package:front/utils/navigations.dart';
+import 'package:front/utils/hive_utils.dart';
+import 'package:front/view/settings/setting.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const adminActions = ['Create Group', 'Edit Groups'];
+    const adminActions = [
+      'Create Group',
+      'Edit Groups',
+      'Manage Users',
+      'View Reports',
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text('Admin Home'),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await AuthController.logout();
-              Navigator.pushReplacementNamed(context, '/signin');
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              final userId = HiveUtils.getData('userId');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(userId: userId),
+                ),
+              );
             },
           ),
         ],

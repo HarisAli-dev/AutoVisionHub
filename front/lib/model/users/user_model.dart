@@ -7,6 +7,8 @@ class User {
   String? city;
   String? role;
   String? profileImageUrl;
+  List<String>? visitedItems;
+  bool? isBanned;
 
   User.empty({
     this.id = '',
@@ -17,6 +19,7 @@ class User {
     this.city = '',
     this.role = '',
     this.profileImageUrl = '',
+    this.isBanned = false,
   });
   User({
     this.id,
@@ -27,6 +30,8 @@ class User {
     this.city,
     this.role,
     this.profileImageUrl,
+    this.visitedItems,
+    this.isBanned = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -39,6 +44,12 @@ class User {
       city: json['city'] ?? '',
       role: json['role'] ?? 'community_member',
       profileImageUrl: json['profileImageUrl'] ?? '',
+      visitedItems: json['visitedItems'] != null
+          ? List<String>.from(
+              json['visitedItems'].map((item) => item.toString()),
+            )
+          : null,
+      isBanned: json['isBanned'] ?? false,
     );
   }
 
@@ -52,6 +63,8 @@ class User {
       'city': city,
       'role': role,
       'profilePicture': profileImageUrl,
+      'visitedItems': visitedItems,
+      'isBanned': isBanned,
     };
   }
 }
