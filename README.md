@@ -1,6 +1,10 @@
 # AutoVisionHub
 
 A comprehensive Flutter application with Node.js backend for event management, chat, and group messaging with push notifications.
+<img width="720" height="1600" alt="762cda69-6448-412b-a11b-b80ace966067" src="https://github.com/user-attachments/assets/d91a0d8a-c8c7-4dda-88ff-b504e826c24f" />
+<img width="720" height="1600" alt="ea74ab1b-9b10-4f30-94bc-fff8f8d46830" src="https://github.com/user-attachments/assets/ed2c12eb-06e4-4433-b83c-2a2229aed006" />
+<img width="720" height="1600" alt="fc6fd291-00ec-4355-9351-d23338c028d3" src="https://github.com/user-attachments/assets/14ba372a-d041-4ce1-a453-f8d6bb827029" />
+
 
 ## 🔧 Environment Setup
 
